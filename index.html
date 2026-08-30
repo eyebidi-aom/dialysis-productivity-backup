@@ -255,7 +255,7 @@
   document.addEventListener('input', function (e) {
     if (e.target && e.target.matches && e.target.matches('input[type="number"]')) {
       if (e.target.value !== '' && Number(e.target.value) < 0) {
-        e.target.value = 0;
+      e.target.value = 0; if (typeof calculateLive === 'function') { calculateLive(); }
       }
     }
   });
