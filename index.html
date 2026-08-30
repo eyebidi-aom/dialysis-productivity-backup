@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <base target="_top">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap');
+    body { background-color: #f0fdf4; font-family: 'Sarabun', sans-serif; color: #1e293b; }
+    
+    .bg-mint-dark { background-color: #047857; }
+    .bg-mint { background-color: #10b981; }
+    .bg-mint-light { background-color: #d1fae5; }
+    .text-mint { color: #10b981; }
+    
+    .btn-mint { background-color: #10b981; color: white; border-radius: 1rem; padding: 10px 20px; transition: 0.3s; }
+    .btn-mint:hover { background-color: #059669; color: white; transform: translateY(-2px); }
+    
+    .content-box { background: white; border-radius: 1.5rem; padding: 20px; box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); margin-bottom: 20px; border: 1px solid #e2e8f0; }
+    .stat-card { border-radius: 1.2rem; padding: 15px; height: 100%; text-align: center; transition: 0.3s; border: 1px solid #e2e8f0; }
+    .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
+    
+    .stat-title { font-size: 0.85rem; color: #64748b; font-weight: 600; line-height: 1.2; }
+    .stat-value { font-size: 1.6rem; font-weight: 800; margin-top: 5px; }
+    .section-title { font-size: 1.2rem; font-weight: 700; color: #0f172a; margin-top: 20px; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+    
+    .chart-container { position: relative; height: 300px; width: 100%; }
+    
+    .nav-pills .nav-link { font-weight: 600; color: #64748b; border-radius: 1rem; padding: 10px 20px; margin-right: 10px; transition: 0.3s; }
+    .nav-pills .nav-link:hover { background-color: #e2e8f0; }
+    .nav-pills .nav-link.active { background-color: #10b981; color: white; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); }
+    
+    .table-custom { border-radius: 1rem; overflow: hidden; }
+    .table-custom thead { background-color: #0f172a; color: white; }
+    .form-control, .form-select { border-radius: 0.8rem; border: 1px solid #cbd5e1; }
+    .form-control:focus, .form-select:focus { border-color: #10b981; box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.25); }
+    
+    .ai-box { background: linear-gradient(135deg, #d1fae5 0%, #f0fdf4 100%); border: 2px dashed #10b981; border-radius: 1.5rem; }
+    .ai-content { font-size: 1rem; line-height: 1.6; color: #334155; }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar bg-mint-dark shadow-sm py-3">
+    <div class="container-fluid d-flex flex-column flex-md-row align-items-md-center">
+      <span class="navbar-brand mb-0 h1 text-white fw-bold"><i class="bi bi-heart-pulse-fill text-mint-light"></i> ระบบภาระงานไตเทียม</span>
+      <span class="text-white opacity-75" style="font-size: 0.85rem;">
+        <i class="bi bi-info-circle-fill"></i> เกณฑ์มาตรฐาน %Productivity: <strong class="text-warning">85% - 95%</strong> (หาก > 100% = ภาระงานเกิน)
+      </span>
+    </div>
+  </nav>
+
+  <div class="container-fluid px-4 py-3">
+    <div class="content-box row align-items-end mx-0 mb-4">
+      <div class="col-6 col-md-4">
+        <label class="form-label fw-bold text-secondary">ประเภทปี</label>
+        <select id="filterYearType" class="form-select" onchange="loadData()"><option value="FY">ปีงบประมาณ</option><option value="CY">ปี พ.ศ. (ปฏิทิน)</option></select>
+      </div>
+      <div class="col-6 col-md-4">
+        <label class="form-label fw-bold text-secondary">ปี</label>
+        <select id="filterYear" class="form-select" onchange="loadData()"><option value="All">ทั้งหมด</option><option value="2567">2567</option><option value="2568">2568</option><option value="2569">2569</option><option value="2570">2570</option></select>
+      </div>
+      <div class="col-12 col-md-4 mt-3 mt-md-0">
+        <label class="form-label fw-bold text-secondary">เดือน</label>
+        <select id="filterMonth" class="form-select" onchange="loadData()">
+          <option value="All">ทั้งหมด</option>
+          <option value="10">ต.ค.</option><option value="11">พ.ย.</option><option value="12">ธ.ค.</option>
+          <option value="1">ม.ค.</option><option value="2">ก.พ.</option><option value="3">มี.ค.</option>
+          <option value="4">เม.ย.</option><option value="5">พ.ค.</option><option value="6">มิ.ย.</option>
+          <option value="7">ก.ค.</option><option value="8">ส.ค.</option><option value="9">ก.ย.</option>
+        </select>
+      </div>
+    </div>
+
+    <ul class="nav nav-pills mb-4 justify-content-center justify-content-md-start" id="pills-tab" role="tablist">
+      <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="pills-table-tab" data-bs-toggle="pill" data-bs-target="#pills-table" type="button"><i class="bi bi-pencil-square"></i> บันทึกข้อมูล</button>
+      </li>
+      <li class="nav-item" role="presentation">
+        <button class="nav-link" id="pills-dashboard-tab" data-bs-toggle="pill" data-bs-target="#pills-dashboard" type="button"><i class="bi bi-pie-chart-fill"></i> แดชบอร์ดสถิติ</button>
+      </li>
+    </ul>
+
+    <div id="loader" class="text-center my-5"><div class="spinner-border text-mint" style="width: 3rem; height: 3rem;"></div><p class="mt-3 fw-bold text-secondary">กำลังโหลดข้อมูล...</p></div>
+
+    <div class="tab-content" id="pills-tabContent" style="display:none;">
+      
+      <div class="tab-pane fade show active" id="pills-table" role="tabpanel">
+        <div class="content-box">
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
+            <h5 class="fw-bold text-dark mb-3 mb-md-0"><i class="bi bi-table text-mint"></i> ข้อมูลบันทึกประจำวัน</h5>
+            <button class="btn btn-mint fw-bold shadow-sm" onclick="openModal()"><i class="bi bi-plus-lg"></i> เพิ่มภาระงานใหม่</button>
+          </div>
+          <div class="table-responsive table-custom shadow-sm">
+            <table class="table table-hover align-middle text-center mb-0">
+              <thead><tr><th class="py-3">วันที่</th><th>Staff/Day</th><th>Patient/Day</th><th>% Prod</th><th>จัดการ</th></tr></thead>
+              <tbody id="tableBody" class="bg-white"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-pane fade" id="pills-dashboard" role="tabpanel">
+        
+        <div class="section-title"><i class="bi bi-activity text-mint"></i> ภาพรวม (ตามตัวกรอง)</div>
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-2"><div class="stat-card bg-white"><div class="stat-title">Staff / Day (เฉลี่ย)</div><div class="stat-value text-primary" id="c-staffday">0</div></div></div>
+          <div class="col-6 col-md-2"><div class="stat-card bg-white"><div class="stat-title">Patient / Day (เฉลี่ย)</div><div class="stat-value text-primary" id="c-ptday">0</div></div></div>
+          <div class="col-12 col-md-3"><div class="stat-card bg-mint-light border-0"><div class="stat-title text-mint-dark">ยอดผู้รับบริการทั้งหมด</div><div class="stat-value text-mint-dark" id="c-totalpt">0</div></div></div>
+          <div class="col-6 col-md-2"><div class="stat-card bg-white"><div class="stat-title">NHPPD (เฉลี่ย)</div><div class="stat-value text-warning" id="c-nhppd">0</div></div></div>
+          <div class="col-6 col-md-3"><div class="stat-card bg-white"><div class="stat-title">% Productivity (เฉลี่ย)</div><div class="stat-value text-danger" id="c-prod">0%</div></div></div>
+        </div>
+
+        <div class="row g-4 mb-4">
+          <div class="col-12"><div class="content-box"><h6 class="fw-bold text-center text-secondary mb-3">📈 แนวโน้ม % Productivity (เปรียบเทียบ 3 ปี)</h6><div class="chart-container"><canvas id="chartProd"></canvas></div></div></div>
+          <div class="col-md-6"><div class="content-box"><h6 class="fw-bold text-center text-secondary mb-3">📊 ยอดผู้รับบริการรวมรายเดือน (1 ปี)</h6><div class="chart-container"><canvas id="chartTotalPt"></canvas></div></div></div>
+          <div class="col-md-6"><div class="content-box"><h6 class="fw-bold text-center text-secondary mb-3">📉 สัดส่วนประเภทผู้รับบริการ (1 ปี)</h6><div class="chart-container"><canvas id="chartTypes"></canvas></div></div></div>
+        </div>
+
+        <div class="section-title"><i class="bi bi-people-fill text-primary"></i> บุคลากร (Personnel)</div>
+        <div class="row g-3 mb-4">
+          <div class="col-4 col-md-2"><div class="stat-card bg-white"><div class="stat-title">HN</div><div class="stat-value text-dark" id="c-hn">0</div></div></div>
+          <div class="col-4 col-md-2"><div class="stat-card bg-white"><div class="stat-title">RN</div><div class="stat-value text-dark" id="c-rn">0</div></div></div>
+          <div class="col-4 col-md-2"><div class="stat-card bg-white"><div class="stat-title">PN</div><div class="stat-value text-dark" id="c-pn">0</div></div></div>
+          <div class="col-4 col-md-2"><div class="stat-card bg-white"><div class="stat-title">NA</div><div class="stat-value text-dark" id="c-na">0</div></div></div>
+          <div class="col-6 col-md-2"><div class="stat-card bg-white"><div class="stat-title">RN ประชุม(ชม.)</div><div class="stat-value text-secondary" id="c-rnmeet">0</div></div></div>
+          <div class="col-6 col-md-2"><div class="stat-card bg-white"><div class="stat-title">NA ประชุม(ชม.)</div><div class="stat-value text-secondary" id="c-nameet">0</div></div></div>
+        </div>
+
+        <div class="section-title"><i class="bi bi-capsule text-success"></i> การให้บริการ (Services)</div>
+        <div class="row g-3 mb-4">
+          <div class="col-4 col-md-2"><div class="stat-card bg-white"><div class="stat-title">AHD</div><div class="stat-value text-dark" id="c-ahd">0</div></div></div>
+          <div class="col-4 col-md-2"><div class="stat-card bg-white"><div class="stat-title">CHD</div><div class="stat-value text-dark" id="c-chd">0</div></div></div>
+          <div class="col-4 col-md-2"><div class="stat-card bg-white"><div class="stat-title">RRT</div><div class="stat-value text-dark" id="c-rrt">0</div></div></div>
+          <div class="col-4 col-md-2"><div class="stat-card bg-white"><div class="stat-title">OR</div><div class="stat-value text-dark" id="c-or">0</div></div></div>
+          <div class="col-4 col-md-2"><div class="stat-card bg-white"><div class="stat-title">DLC</div><div class="stat-value text-dark" id="c-dlc">0</div></div></div>
+          <div class="col-4 col-md-2"><div class="stat-card bg-white"><div class="stat-title">KBx</div><div class="stat-value text-dark" id="c-kbx">0</div></div></div>
+          <div class="col-4 col-md-2"><div class="stat-card bg-white"><div class="stat-title">Cons</div><div class="stat-value text-dark" id="c-cons">0</div></div></div>
+          <div class="col-4 col-md-2"><div class="stat-card bg-white"><div class="stat-title">ทำแผล</div><div class="stat-value text-dark" id="c-wound">0</div></div></div>
+          <div class="col-4 col-md-2"><div class="stat-card bg-white border-secondary"><div class="stat-title">HD นอก</div><div class="stat-value text-secondary" id="c-hdout">0</div></div></div>
+          <div class="col-4 col-md-2"><div class="stat-card bg-white border-secondary"><div class="stat-title">EID</div><div class="stat-value text-secondary" id="c-eid">0</div></div></div>
+          <div class="col-4 col-md-2"><div class="stat-card bg-white border-secondary"><div class="stat-title">ICU</div><div class="stat-value text-secondary" id="c-icu">0</div></div></div>
+          <div class="col-4 col-md-2"><div class="stat-card bg-white border-secondary"><div class="stat-title">HIV</div><div class="stat-value text-secondary" id="c-hiv">0</div></div></div>
+        </div>
+
+        <div class="section-title"><i class="bi bi-exclamation-triangle-fill text-danger"></i> อุบัติการณ์ความเสี่ยง (Incidents)</div>
+        <div class="row g-2 mb-5" id="dashboardRisks"></div>
+
+        <!-- กล่อง AI วิเคราะห์ (แก้ไขข้อความแล้ว) -->
+        <div class="content-box ai-box p-4 text-center">
+          <h4 class="fw-bold text-mint-dark mb-3"><i class="bi bi-robot fs-2"></i> วิเคราะห์ภาพรวมองค์กร</h4>
+          <button class="btn btn-dark rounded-pill px-5 py-2 fw-bold shadow" onclick="runAIAnalysis()"><i class="bi bi-magic"></i> เริ่มวิเคราะห์ข้อมูล</button>
+          
+          <div id="aiResultContainer" class="mt-4 text-start bg-white p-4 rounded-4 shadow-sm" style="display:none;">
+            <div id="aiResultText" class="ai-content"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="modal fade" id="recordModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content" style="border-radius: 1.5rem; overflow: hidden;">
+        <div class="modal-header bg-mint text-white border-0 py-3">
+          <h5 class="modal-title fw-bold"><i class="bi bi-journal-text"></i> ฟอร์มบันทึกภาระงาน</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body bg-light">
+          <form id="recordForm">
+            <input type="hidden" id="rowIdx">
+            <div class="row g-3 mb-4 bg-white p-3 rounded-4 shadow-sm">
+              <div class="col-md-6"><label class="fw-bold text-secondary">วันที่ <span class="text-danger">*</span></label><input type="date" class="form-control" id="f-date" required></div>
+              <div class="col-md-6"><label class="fw-bold text-secondary">ผู้บันทึก</label><input type="text" class="form-control" id="f-recorder" placeholder="ชื่อผู้ลงข้อมูล"></div>
+            </div>
+            
+            <div class="row g-3 mb-4 bg-white p-3 rounded-4 shadow-sm text-center">
+              <div class="col-3"><div class="text-secondary fw-bold" style="font-size:0.8rem;">Staff/Day</div><div id="live-staff" class="fs-4 fw-bold text-primary">0</div></div>
+              <div class="col-3"><div class="text-secondary fw-bold" style="font-size:0.8rem;">Patient/Day</div><div id="live-pt" class="fs-4 fw-bold text-primary">0</div></div>
+              <div class="col-3"><div class="text-secondary fw-bold" style="font-size:0.8rem;">NHPPD</div><div id="live-nhppd" class="fs-4 fw-bold text-warning">0</div></div>
+              <div class="col-3"><div class="text-secondary fw-bold" style="font-size:0.8rem;">% Prod</div><div id="live-prod" class="fs-4 fw-bold text-danger">0%</div></div>
+            </div>
+
+            <ul class="nav nav-pills mb-3 justify-content-center" role="tablist">
+              <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab1" type="button">บุคลากร & บริการ</button></li>
+              <li class="nav-item"><button class="nav-link text-danger" data-bs-toggle="pill" data-bs-target="#tab2" type="button">ความเสี่ยง</button></li>
+            </ul>
+            
+            <div class="tab-content bg-white p-4 rounded-4 shadow-sm">
+              <div class="tab-pane fade show active" id="tab1">
+                <h6 class="fw-bold text-primary border-bottom pb-2 mb-3"><i class="bi bi-person-badge"></i> บุคลากร</h6>
+                <div class="row g-3 mb-4">
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">HN</label><input type="number" class="form-control calc-input" id="f-hn" value="0"></div>
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">RN</label><input type="number" class="form-control calc-input" id="f-rn" value="0"></div>
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">PN</label><input type="number" class="form-control calc-input" id="f-pn" value="0"></div>
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">NA</label><input type="number" class="form-control calc-input" id="f-na" value="0"></div>
+                  <div class="col-6 col-md-2"><label class="form-label text-secondary">RN ประชุม</label><input type="number" class="form-control" id="f-rnmeet" value="0"></div>
+                  <div class="col-6 col-md-2"><label class="form-label text-secondary">NA ประชุม</label><input type="number" class="form-control" id="f-nameet" value="0"></div>
+                </div>
+                <h6 class="fw-bold text-success border-bottom pb-2 mb-3"><i class="bi bi-bandaid"></i> การให้บริการ (นำไปคิด Pt/Day)</h6>
+                <div class="row g-3 mb-4">
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">AHD</label><input type="number" class="form-control calc-input" id="f-ahd" value="0"></div>
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">CHD</label><input type="number" class="form-control calc-input" id="f-chd" value="0"></div>
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">RRT</label><input type="number" class="form-control calc-input" id="f-rrt" value="0"></div>
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">OR</label><input type="number" class="form-control calc-input" id="f-or" value="0"></div>
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">DLC</label><input type="number" class="form-control calc-input" id="f-dlc" value="0"></div>
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">KBx</label><input type="number" class="form-control calc-input" id="f-kbx" value="0"></div>
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">Cons</label><input type="number" class="form-control calc-input" id="f-cons" value="0"></div>
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">ทำแผล</label><input type="number" class="form-control calc-input" id="f-wound" value="0"></div>
+                </div>
+                <h6 class="fw-bold text-secondary border-bottom pb-2 mb-3"><i class="bi bi-box-arrow-up-right"></i> ซับเซต (ไม่นำไปคิด Pt/Day)</h6>
+                <div class="row g-3">
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">HD นอก</label><input type="number" class="form-control calc-input" id="f-hdout" value="0"></div>
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">EID</label><input type="number" class="form-control calc-input" id="f-eid" value="0"></div>
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">ICU</label><input type="number" class="form-control calc-input" id="f-icu" value="0"></div>
+                  <div class="col-3 col-md-2"><label class="form-label text-secondary">HIV</label><input type="number" class="form-control calc-input" id="f-hiv" value="0"></div>
+                </div>
+              </div>
+              <div class="tab-pane fade" id="tab2"><div class="row g-3" id="riskContainer"></div></div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer border-0 bg-light py-3">
+          <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">ยกเลิก</button>
+          <button type="button" class="btn btn-mint rounded-pill px-5 fw-bold" onclick="saveData()"><i class="bi bi-save"></i> บันทึกข้อมูล</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+
+  // URL ของ Apps Script Web App (ใช้ได้ทั้งตอนรันบน Apps Script โดยตรง และตอนรันบน GitHub Pages)
+  const API_URL = 'https://script.google.com/macros/s/AKfycbwe1hp6YKK7kRZHoty4AfoTmfikephVsr6JjCNVaMxAvCXynC-F2tYIq-YG0-eyJtkjhA/exec';
+
+  function callServer(action, args) {
+    return fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: action, args: args || [] })
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (json) {
+        if (json && json.error) { throw new Error(json.error); }
+        return json.result;
+      });
+  }    const riskNames = ["ข้อร้องเรียน", "ตัวกรองมีสารตกค้าง", "การใช้ตัวกรองสลับคน", "ให้ยา/สารน้ำผิด", "คิดค่าใช้จ่ายผิด", "บาดเจ็บจากการแทงเส้น", "แพ้เลือด", "แพ้ยา/สารน้ำ", "A-V เลื่อนหลุด", "Blood line หลุด", "Fistular aneurysm แตก", "เครื่องไตเทียมไม่พร้อม", "ระบบน้ำไม่พร้อม", "RO ปนเปื้อน", "RO แตกรั่ว", "Air embolism", "จนท.บาดเจ็บ", "จนท.ถูกเข็มตำ", "Sudden death", "Chest pain", "Cardiac arrhythmia", "Seizures", "Acute hemolysis", "Acute allergic", "Hypoxia", "Hypotension", "Hypertension", "ปวดศรีษะ", "Nausea vomiting", "Muscle cramp", "Chill", "Fever", "Disequilibrium", "First Use Syndrome", "Dialyzer leak", "Dialyzer clot"];
+    
+    const rc = document.getElementById('riskContainer');
+    riskNames.forEach((name, idx) => { rc.innerHTML += `<div class="col-6 col-md-3"><label class="text-secondary fw-bold" style="font-size:0.75rem;">${name}</label><input type="number" class="form-control form-control-sm f-risk border-danger border-opacity-25" id="risk-${idx}" value="0"></div>`; });
+
+    let rawDataStore = {};
+    let myCharts = {};
+    let myModal;
+    let currentTotals = {}; 
+
+    window.onload = () => { 
+      myModal = new bootstrap.Modal(document.getElementById('recordModal'));
+      loadData(true); 
+    };
+
+    function loadData(isInitial = false) {
+      document.getElementById('loader').style.display = 'block';
+      document.getElementById('pills-tabContent').style.display = 'none';
+      document.getElementById('aiResultContainer').style.display = 'none'; 
+      let m = isInitial ? "" : document.getElementById('filterMonth').value;
+      let y = isInitial ? "" : document.getElementById('filterYear').value;
+      let type = document.getElementById('filterYearType').value;
+      callServer('getData', [m, y, type]).then(updateUI).catch(function (err) { document.getElementById('loader').style.display = 'none'; Swal.fire('Error', err.message, 'error'); });
+    }
+
+    function updateUI(res) {
+      if (res.status === 'error') { Swal.fire('Error', res.message, 'error'); return; }
+      document.getElementById('filterMonth').value = res.currentFilter.month;
+      document.getElementById('filterYear').value = res.currentFilter.year;
+
+      const t = res.totals;
+      currentTotals = t; 
+      
+      document.getElementById('c-staffday').innerText = t.AvgStaffDay;
+      document.getElementById('c-ptday').innerText = t.AvgPatientDay;
+      document.getElementById('c-totalpt').innerText = t.PatientDay; 
+      document.getElementById('c-nhppd').innerText = t.AvgNHPPD;
+      document.getElementById('c-prod').innerText = t.AvgProd + '%';
+      
+      document.getElementById('c-hn').innerText = t.HN; document.getElementById('c-rn').innerText = t.RN;
+      document.getElementById('c-pn').innerText = t.PN; document.getElementById('c-na').innerText = t.NA;
+      document.getElementById('c-rnmeet').innerText = t.rnMeet; document.getElementById('c-nameet').innerText = t.naMeet;
+      
+      document.getElementById('c-ahd').innerText = t.AHD; document.getElementById('c-chd').innerText = t.CHD;
+      document.getElementById('c-rrt').innerText = t.RRT; document.getElementById('c-or').innerText = t.OR;
+      document.getElementById('c-dlc').innerText = t.DLC; document.getElementById('c-kbx').innerText = t.KBx;
+      document.getElementById('c-cons').innerText = t.Cons; document.getElementById('c-wound').innerText = t.wound;
+      document.getElementById('c-hdout').innerText = t.HDOut; document.getElementById('c-eid').innerText = t.EID;
+      document.getElementById('c-icu').innerText = t.ICU; document.getElementById('c-hiv').innerText = t.HIV;
+
+      let riskHtml = '';
+      t.risks.forEach((val, idx) => {
+        let isDanger = val > 0;
+        let borderClass = isDanger ? 'border-danger border-2' : 'border-light';
+        let textClass = isDanger ? 'text-danger' : 'text-secondary opacity-50';
+        riskHtml += `<div class="col-4 col-md-3 col-lg-2"><div class="stat-card bg-white shadow-sm ${borderClass} p-2"><div class="stat-title" style="font-size:0.7rem; line-height:1;">${riskNames[idx]}</div><div class="stat-value ${textClass} fs-5 mt-1">${val}</div></div></div>`;
+      });
+      document.getElementById('dashboardRisks').innerHTML = riskHtml;
+
+      drawCharts(res.chartData, res.currentFilter.year);
+
+      let tbody = document.getElementById('tableBody');
+      tbody.innerHTML = '';
+      rawDataStore = {};
+      if(res.records.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-muted py-4">ไม่มีข้อมูลในระบบ</td></tr>';
+      } else {
+        res.records.forEach(r => {
+          rawDataStore[r.rowIdx] = r.raw;
+          tbody.innerHTML += `<tr>
+            <td class="fw-bold">${r.date}</td><td class="text-primary fw-bold">${r.staffDay}</td>
+            <td class="text-primary fw-bold">${r.patientDay}</td><td class="text-success fw-bold">${r.prod}%</td>
+            <td>
+              <button class="btn btn-sm btn-light text-primary shadow-sm me-1" onclick="editData(${r.rowIdx})"><i class="bi bi-pencil-fill"></i></button>
+              <button class="btn btn-sm btn-light text-danger shadow-sm" onclick="confirmDelete(${r.rowIdx})"><i class="bi bi-trash-fill"></i></button>
+            </td>
+          </tr>`;
+        });
+      }
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('pills-tabContent').style.display = 'block';
+    }
+
+    function drawCharts(data, targetYear) {
+      const ty = targetYear === 'All' ? new Date().getFullYear()+543 : parseInt(targetYear);
+      if(myCharts.prod) myCharts.prod.destroy();
+      if(myCharts.totalPt) myCharts.totalPt.destroy();
+      if(myCharts.types) myCharts.types.destroy();
+
+      Chart.defaults.font.family = 'Sarabun';
+      
+      myCharts.prod = new Chart(document.getElementById('chartProd'), {
+        type: 'line',
+        data: { labels: data.labels, datasets: [
+            { label: `ปี ${ty}`, data: data.prodY0, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4, borderWidth: 3 },
+            { label: `ปี ${ty-1}`, data: data.prodY1, borderColor: '#3b82f6', borderDash: [5,5], tension: 0.4 },
+            { label: `ปี ${ty-2}`, data: data.prodY2, borderColor: '#94a3b8', borderDash: [2,2], tension: 0.4 }
+        ]}, options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      myCharts.totalPt = new Chart(document.getElementById('chartTotalPt'), {
+        type: 'bar',
+        data: { labels: data.labels, datasets: [{ label: 'ผู้รับบริการรวม', data: data.totalPt, backgroundColor: '#10b981', borderRadius: 8 }]},
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      const t = data.types;
+      myCharts.types = new Chart(document.getElementById('chartTypes'), {
+        type: 'line',
+        data: { labels: data.labels, datasets: [
+            { label: 'AHD', data: t.AHD, borderColor: '#ef4444', tension: 0.3 }, { label: 'CHD', data: t.CHD, borderColor: '#f97316', tension: 0.3 },
+            { label: 'RRT', data: t.RRT, borderColor: '#eab308', tension: 0.3 }, { label: 'OR', data: t.OR, borderColor: '#22c55e', tension: 0.3 },
+            { label: 'DLC', data: t.DLC, borderColor: '#14b8a6', tension: 0.3 }, { label: 'KBx', data: t.KBx, borderColor: '#06b6d4', tension: 0.3 },
+            { label: 'Cons', data: t.Cons, borderColor: '#3b82f6', tension: 0.3 }, { label: 'HD นอก', data: t.HDOut, borderColor: '#6366f1', borderDash:[2,2] },
+            { label: 'EID', data: t.EID, borderColor: '#8b5cf6', borderDash:[2,2] }, { label: 'ICU', data: t.ICU, borderColor: '#d946ef', borderDash:[2,2] },
+            { label: 'HIV', data: t.HIV, borderColor: '#f43f5e', borderDash:[2,2] }
+        ]}, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10 } } } }
+      });
+    }
+
+    const calcInputs = document.querySelectorAll('.calc-input');
+    calcInputs.forEach(input => input.addEventListener('input', calculateLive));
+
+    function calculateLive() {
+      const getVal = (id) => Number(document.getElementById(id).value) || 0;
+      let staffDay = getVal('f-rn') + getVal('f-pn');
+      
+      let ptDay = getVal('f-ahd') + getVal('f-chd') + getVal('f-rrt') + getVal('f-or') + getVal('f-dlc') + getVal('f-kbx') + getVal('f-cons') + getVal('f-wound');
+      let reqHours = (getVal('f-ahd')*3) + (getVal('f-chd')*3) + (getVal('f-rrt')*2) + (getVal('f-or')*3) + (getVal('f-dlc')*0.5) + (getVal('f-kbx')*0.5) + (getVal('f-cons')*0.75) + (getVal('f-wound')*0.2);
+      
+      let availHours = staffDay * 7;
+      document.getElementById('live-staff').innerText = staffDay;
+      document.getElementById('live-pt').innerText = ptDay;
+      document.getElementById('live-nhppd').innerText = ptDay > 0 ? (reqHours / ptDay).toFixed(2) : 0;
+      document.getElementById('live-prod').innerText = (availHours > 0 ? ((reqHours / availHours) * 100).toFixed(2) : 0) + '%';
+    }
+
+    function openModal() { 
+      document.getElementById('recordForm').reset(); 
+      document.getElementById('rowIdx').value = ''; 
+      document.getElementById('f-date').valueAsDate = new Date(); 
+      calculateLive(); 
+      myModal.show(); 
+    }
+
+    function editData(rowIdx) {
+      const raw = rawDataStore[rowIdx]; 
+      document.getElementById('rowIdx').value = rowIdx;
+      let d = new Date(raw[0]); 
+      document.getElementById('f-date').value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+      document.getElementById('f-hn').value = raw[1]; document.getElementById('f-rn').value = raw[2]; document.getElementById('f-pn').value = raw[3]; document.getElementById('f-na').value = raw[4];
+      document.getElementById('f-ahd').value = raw[5]; document.getElementById('f-chd').value = raw[6]; document.getElementById('f-rrt').value = raw[7]; document.getElementById('f-or').value = raw[8]; document.getElementById('f-dlc').value = raw[9]; document.getElementById('f-kbx').value = raw[10]; document.getElementById('f-cons').value = raw[11]; document.getElementById('f-wound').value = raw[12];
+      document.getElementById('f-hdout').value = raw[17]; document.getElementById('f-eid').value = raw[18]; document.getElementById('f-icu').value = raw[19]; document.getElementById('f-hiv').value = raw[20];
+      document.getElementById('f-rnmeet').value = raw[21]; document.getElementById('f-nameet').value = raw[22];
+      for(let i=0; i<36; i++) { document.getElementById('risk-'+i).value = raw[23+i] || 0; }
+      calculateLive(); 
+      myModal.show();
+    }
+
+    function saveData() {
+      if(!document.getElementById('f-date').value) return Swal.fire({ icon: 'warning', title: 'เดี๋ยวก่อน!', text: 'กรุณาเลือกวันที่ด้วยครับ' });
+      calculateLive(); 
+      let risks = []; 
+      for(let i=0; i<36; i++) { risks.push(document.getElementById('risk-'+i).value); }
+      const obj = { 
+        rowIdx: document.getElementById('rowIdx').value, date: document.getElementById('f-date').value, 
+        hn: document.getElementById('f-hn').value, rn: document.getElementById('f-rn').value, pn: document.getElementById('f-pn').value, na: document.getElementById('f-na').value, 
+        ahd: document.getElementById('f-ahd').value, chd: document.getElementById('f-chd').value, rrt: document.getElementById('f-rrt').value, or: document.getElementById('f-or').value, dlc: document.getElementById('f-dlc').value, kbx: document.getElementById('f-kbx').value, cons: document.getElementById('f-cons').value, wound: document.getElementById('f-wound').value, hdout: document.getElementById('f-hdout').value, eid: document.getElementById('f-eid').value, icu: document.getElementById('f-icu').value, hiv: document.getElementById('f-hiv').value, rnMeet: document.getElementById('f-rnmeet').value, naMeet: document.getElementById('f-nameet').value, 
+        staffDay: document.getElementById('live-staff').innerText, patientDay: document.getElementById('live-pt').innerText, nhppd: document.getElementById('live-nhppd').innerText, prod: document.getElementById('live-prod').innerText.replace('%',''), risks: risks 
+      };
+      
+      Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      callServer('saveRecord', [obj]).then(() => { 
+        myModal.hide(); 
+        Swal.fire({ icon: 'success', title: 'เย้! สำเร็จแล้ว', text: 'บันทึกข้อมูลภาระงานเรียบร้อย', confirmButtonColor: '#10b981' }); 
+        loadData(); 
+      }).catch(function (err) { Swal.fire('Error', err.message, 'error'); });
+    }
+    
+    function confirmDelete(rowIdx) { 
+      Swal.fire({ title: 'แน่ใจหรือไม่?', text: "ข้อมูลนี้จะถูกลบอย่างถาวร!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'ลบเลย!' }).then((res) => { 
+        if (res.isConfirmed) { 
+          Swal.fire({ title: 'กำลังลบ...', didOpen: () => Swal.showLoading() }); 
+          callServer('deleteRecord', [rowIdx]).then(() => {
+            Swal.fire({ icon: 'success', title: 'ลบเรียบร้อย', confirmButtonColor: '#10b981' }); 
+            loadData(); 
+          }).catch(function (err) { Swal.fire('Error', err.message, 'error'); });
+        } 
+      }); 
+    }
+
+    function runAIAnalysis() {
+      let period = `เดือน ${document.getElementById('filterMonth').options[document.getElementById('filterMonth').selectedIndex].text} ปี ${document.getElementById('filterYear').value}`;
+      let riskStr = "";
+      currentTotals.risks.forEach((val, idx) => { if(val > 0) riskStr += `- ${riskNames[idx]}: ${val} ครั้ง\n`; });
+      if(riskStr === "") riskStr = "- ไม่มีอุบัติการณ์ความเสี่ยง\n";
+
+      let summary = `
+      ช่วงเวลาที่ประเมิน: ${period}
+      1. ข้อมูลภาพรวม:
+      - % Productivity เฉลี่ย: ${currentTotals.AvgProd}%
+      - อัตรากำลังเฉลี่ย (Staff/Day): ${currentTotals.AvgStaffDay} คน/วัน
+      - ผู้ป่วยเฉลี่ย (Patient/Day): ${currentTotals.AvgPatientDay} ราย/วัน
+      - ยอดผู้ป่วยสะสม: ${currentTotals.PatientDay} ราย
+      
+      2. ข้อมูลบุคลากรและการพัฒนา:
+      - พยาบาลวิชาชีพ (RN) รวม: ${currentTotals.RN}
+      - ผู้ช่วยพยาบาล (PN) รวม: ${currentTotals.PN}
+      - จำนวนชั่วโมง RN อบรม/ประชุม: ${currentTotals.rnMeet} ชม.
+      - จำนวนชั่วโมง NA อบรม/ประชุม: ${currentTotals.naMeet} ชม.
+
+      3. อุบัติการณ์ความเสี่ยงที่เกิดขึ้น (Incident Report):
+      ${riskStr}
+      `;
+
+      Swal.fire({ title: 'AI กำลังประเมินผล...', html: 'กำลังวิเคราะห์ภาพรวมองค์กร...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+      
+      callServer('analyzeWithGemini', [summary]).then(res => {
+        Swal.close();
+        document.getElementById('aiResultContainer').style.display = 'block';
+        let formattedText = res.replace(/\*\*(.*?)\*\*/g, '<strong class="text-mint-dark">$1</strong>').replace(/\n/g, '<br>');
+        document.getElementById('aiResultText').innerHTML = formattedText;
+        document.getElementById('aiResultContainer').scrollIntoView({ behavior: 'smooth' });
+      }).catch(function (err) { Swal.close(); Swal.fire('Error', err.message, 'error'); });
+    }
+  </script>
+</body>
+</html>
