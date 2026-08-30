@@ -249,6 +249,7 @@
         if (json && json.error) { throw new Error(json.error); }
         return json.result;
       });
+  }
 
   // ป้องกันการกรอกตัวเลขติดลบในทุกช่องกรอกตัวเลข (รวมถึงช่องความเสี่ยงที่สร้างภายหลัง)
   document.addEventListener('input', function (e) {
@@ -258,7 +259,6 @@
       }
     }
   });
-  }
   const riskNames = ["ข้อร้องเรียน", "ตัวกรองมีสารตกค้าง", "การใช้ตัวกรองสลับคน", "ให้ยา/สารน้ำผิด", "คิดค่าใช้จ่ายผิด", "บาดเจ็บจากการแทงเส้น", "แพ้เลือด", "แพ้ยา/สารน้ำ", "A-V เลื่อนหลุด", "Blood line หลุด", "Fistular aneurysm แตก", "เครื่องไตเทียมไม่พร้อม", "ระบบน้ำไม่พร้อม", "RO ปนเปื้อน", "RO แตกรั่ว", "Air embolism", "จนท.บาดเจ็บ", "จนท.ถูกเข็มตำ", "Sudden death", "Chest pain", "Cardiac arrhythmia", "Seizures", "Acute hemolysis", "Acute allergic", "Hypoxia", "Hypotension", "Hypertension", "ปวดศรีษะ", "Nausea vomiting", "Muscle cramp", "Chill", "Fever", "Disequilibrium", "First Use Syndrome", "Dialyzer leak", "Dialyzer clot"];
     
     const rc = document.getElementById('riskContainer');
