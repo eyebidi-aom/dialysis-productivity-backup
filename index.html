@@ -36,22 +36,34 @@
     
     /* จัดการตารางใหม่ */
     .table-custom { border-radius: 1rem; overflow: hidden; }
-    .table-custom thead { background-color: #10b981; color: white; } /* เปลี่ยนเป็นสีมิ้นต์ */
+    
+    /* บังคับให้หัวตารางทุกคอลัมน์เป็นสีมิ้นต์ */
+    .table-custom thead th { 
+      background-color: #10b981 !important; 
+      color: white !important; 
+      border-bottom: none;
+    }
     
     /* ตรึงคอลัมน์สุดท้าย (จัดการ) ให้ลอยอยู่บนมือถือเสมอ */
-    .table-custom th:last-child, .table-custom td:last-child {
+    .table-custom td:last-child {
       position: sticky;
       right: 0;
-      background-color: inherit;
+      background-color: #ffffff; /* พื้นหลังสีขาวสำหรับข้อมูล */
       z-index: 1;
       box-shadow: -2px 0 5px rgba(0,0,0,0.05);
     }
     .table-custom thead th:last-child {
-      background-color: #10b981;
+      position: sticky;
+      right: 0;
+      background-color: #10b981 !important; /* คงสีมิ้นต์สำหรับหัวตารางจัดการ */
       z-index: 2;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.05);
     }
     .table-custom tbody tr {
-      background-color: #ffffff; /* ป้องกันไม่ให้โปร่งใส */
+      background-color: #ffffff; 
+    }
+    .table-custom tbody tr:hover td:last-child {
+      background-color: #f8f9fa; /* สีพื้นหลังตอน hover ให้เข้ากับตาราง */
     }
 
     /* CSS สำหรับตัวหนังสือกระพริบ */
@@ -113,8 +125,6 @@
       
       <div class="tab-pane fade show active" id="pills-table" role="tabpanel">
         <div class="content-box">
-          
-          <!-- ส่วนหัวของตารางถูกปรับปรุงใหม่เพื่อรองรับชื่อเดือนและการแสดงสถานะการลงข้อมูล -->
           <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start mb-4">
             <div>
               <h5 class="fw-bold text-dark mb-2" id="tableTitle"><i class="bi bi-table text-mint"></i> ข้อมูลบันทึกประจำวัน</h5>
@@ -123,7 +133,6 @@
             <button class="btn btn-mint fw-bold shadow-sm" onclick="openModal()"><i class="bi bi-plus-lg"></i> เพิ่มภาระงานใหม่</button>
           </div>
           
-          <!-- ใส่ text-nowrap เพื่อให้ไม่บีบในมือถือ -->
           <div class="table-responsive table-custom shadow-sm">
             <table class="table table-hover align-middle text-center mb-0 text-nowrap">
               <thead><tr><th class="py-3">วันที่</th><th>Staff/Day</th><th>Patient/Day</th><th>% Prod</th><th>จัดการ</th></tr></thead>
@@ -133,7 +142,6 @@
         </div>
       </div>
 
-      <!-- โค้ดส่วนแดชบอร์ดเดิมทั้งหมด -->
       <div class="tab-pane fade" id="pills-dashboard" role="tabpanel">
         
         <div class="section-title"><i class="bi bi-activity text-mint"></i> ภาพรวม (ตามตัวกรอง)</div>
@@ -298,7 +306,7 @@
   const monthNames = { "1": "มกราคม", "2": "กุมภาพันธ์", "3": "มีนาคม", "4": "เมษายน", "5": "พฤษภาคม", "6": "มิถุนายน", "7": "กรกฎาคม", "8": "สิงหาคม", "9": "กันยายน", "10": "ตุลาคม", "11": "พฤศจิกายน", "12": "ธันวาคม" };
 
   let rawDataStore = {};
-  let existingDates = {}; // ตัวแปรเก็บวันที่ไว้เช็คซ้ำ
+  let existingDates = {}; 
   let myCharts = {};
   let myModal;
   let currentTotals = {}; 
@@ -326,7 +334,6 @@
     const t = res.totals;
     currentTotals = t; 
     
-    // จัดการชื่อตาราง และ นับวันทำการ (จ-ศ)
     let titleEl = document.getElementById('tableTitle');
     let progEl = document.getElementById('workdayProgress');
 
@@ -336,20 +343,19 @@
       let yearCE = yearBE - 543;
       let monthIdx = parseInt(monthStr) - 1;
       
-      // นับวันทำการของเดือนนั้น
       let daysInMonth = new Date(yearCE, monthIdx + 1, 0).getDate();
       let workDays = 0;
       for (let i = 1; i <= daysInMonth; i++) {
         let d = new Date(yearCE, monthIdx, i);
         let day = d.getDay();
-        if (day !== 0 && day !== 6) workDays++; // วันอาทิตย์(0) เสาร์(6)
+        if (day !== 0 && day !== 6) workDays++;
       }
       
       titleEl.innerHTML = `<i class="bi bi-table text-mint"></i> ข้อมูลบันทึกประจำวัน (${monthNames[monthStr]} ${yearBE})`;
       
       let entered = res.records.length;
       let missing = workDays - entered;
-      if (missing < 0) missing = 0; // เผื่อมีการทำล่วงเวลาในวันหยุด
+      if (missing < 0) missing = 0; 
       
       let blinkHtml = missing > 0 ? `<span class="blink-danger"><i class="bi bi-exclamation-circle-fill"></i> ขาด ${missing} วันทำการ</span>` : `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill"></i> ครบถ้วน!</span>`;
       
@@ -359,10 +365,8 @@
       progEl.innerHTML = ``;
     }
     
-    // นำข้อมูลในตารางมาเรียงวันที่ (น้อยไปมาก)
     res.records.sort((a, b) => new Date(a.raw[0]) - new Date(b.raw[0]));
 
-    // อัพเดทสถิติ
     document.getElementById('c-staffday').innerText = t.AvgStaffDay; document.getElementById('c-ptday').innerText = t.AvgPatientDay;
     document.getElementById('c-totalpt').innerText = t.PatientDay; document.getElementById('c-nhppd').innerText = t.AvgNHPPD;
     document.getElementById('c-prod').innerText = t.AvgProd + '%'; document.getElementById('c-hn').innerText = t.HN; 
@@ -389,7 +393,7 @@
     let tbody = document.getElementById('tableBody');
     tbody.innerHTML = '';
     rawDataStore = {};
-    existingDates = {}; // รีเซ็ตตัวแปรเช็คซ้ำ
+    existingDates = {}; 
     
     if(res.records.length === 0) {
       tbody.innerHTML = '<tr><td colspan="5" class="text-muted py-4">ไม่มีข้อมูลในระบบ</td></tr>';
@@ -397,7 +401,6 @@
       res.records.forEach(r => {
         rawDataStore[r.rowIdx] = r.raw;
         
-        // เก็บวันที่ในรูปแบบ YYYY-MM-DD สำหรับเช็คการซ้ำซ้อน
         let d = new Date(r.raw[0]); 
         let dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
         existingDates[r.rowIdx] = dateStr;
@@ -498,7 +501,6 @@
 
     let currentRowIdx = document.getElementById('rowIdx').value;
     
-    // ตรวจสอบว่าเลือกวันที่ตรงกับข้อมูลอื่นที่มีอยู่แล้วหรือไม่
     for (let key in existingDates) {
       if (key !== currentRowIdx && existingDates[key] === inputDate) {
         return Swal.fire({ 
