@@ -34,8 +34,30 @@
     .nav-pills .nav-link:hover { background-color: #e2e8f0; }
     .nav-pills .nav-link.active { background-color: #10b981; color: white; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.4); }
     
+    /* จัดการตารางใหม่ */
     .table-custom { border-radius: 1rem; overflow: hidden; }
-    .table-custom thead { background-color: #0f172a; color: white; }
+    .table-custom thead { background-color: #10b981; color: white; } /* เปลี่ยนเป็นสีมิ้นต์ */
+    
+    /* ตรึงคอลัมน์สุดท้าย (จัดการ) ให้ลอยอยู่บนมือถือเสมอ */
+    .table-custom th:last-child, .table-custom td:last-child {
+      position: sticky;
+      right: 0;
+      background-color: inherit;
+      z-index: 1;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+    }
+    .table-custom thead th:last-child {
+      background-color: #10b981;
+      z-index: 2;
+    }
+    .table-custom tbody tr {
+      background-color: #ffffff; /* ป้องกันไม่ให้โปร่งใส */
+    }
+
+    /* CSS สำหรับตัวหนังสือกระพริบ */
+    @keyframes blinker { 50% { opacity: 0; } }
+    .blink-danger { color: #ef4444; font-weight: bold; animation: blinker 1.2s linear infinite; }
+
     .form-control, .form-select { border-radius: 0.8rem; border: 1px solid #cbd5e1; }
     .form-control:focus, .form-select:focus { border-color: #10b981; box-shadow: 0 0 0 0.25rem rgba(16, 185, 129, 0.25); }
     
@@ -91,12 +113,19 @@
       
       <div class="tab-pane fade show active" id="pills-table" role="tabpanel">
         <div class="content-box">
-          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4">
-            <h5 class="fw-bold text-dark mb-3 mb-md-0"><i class="bi bi-table text-mint"></i> ข้อมูลบันทึกประจำวัน</h5>
+          
+          <!-- ส่วนหัวของตารางถูกปรับปรุงใหม่เพื่อรองรับชื่อเดือนและการแสดงสถานะการลงข้อมูล -->
+          <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start mb-4">
+            <div>
+              <h5 class="fw-bold text-dark mb-2" id="tableTitle"><i class="bi bi-table text-mint"></i> ข้อมูลบันทึกประจำวัน</h5>
+              <div id="workdayProgress" class="fs-6 text-secondary mb-3 mb-md-0" style="font-size: 0.95rem;"></div>
+            </div>
             <button class="btn btn-mint fw-bold shadow-sm" onclick="openModal()"><i class="bi bi-plus-lg"></i> เพิ่มภาระงานใหม่</button>
           </div>
+          
+          <!-- ใส่ text-nowrap เพื่อให้ไม่บีบในมือถือ -->
           <div class="table-responsive table-custom shadow-sm">
-            <table class="table table-hover align-middle text-center mb-0">
+            <table class="table table-hover align-middle text-center mb-0 text-nowrap">
               <thead><tr><th class="py-3">วันที่</th><th>Staff/Day</th><th>Patient/Day</th><th>% Prod</th><th>จัดการ</th></tr></thead>
               <tbody id="tableBody" class="bg-white"></tbody>
             </table>
@@ -104,6 +133,7 @@
         </div>
       </div>
 
+      <!-- โค้ดส่วนแดชบอร์ดเดิมทั้งหมด -->
       <div class="tab-pane fade" id="pills-dashboard" role="tabpanel">
         
         <div class="section-title"><i class="bi bi-activity text-mint"></i> ภาพรวม (ตามตัวกรอง)</div>
@@ -150,7 +180,6 @@
         <div class="section-title"><i class="bi bi-exclamation-triangle-fill text-danger"></i> อุบัติการณ์ความเสี่ยง (Incidents)</div>
         <div class="row g-2 mb-5" id="dashboardRisks"></div>
 
-        <!-- กล่อง AI วิเคราะห์ (แก้ไขข้อความแล้ว) -->
         <div class="content-box ai-box p-4 text-center">
           <h4 class="fw-bold text-mint-dark mb-3"><i class="bi bi-robot fs-2"></i> วิเคราะห์ภาพรวมองค์กร</h4>
           <button class="btn btn-dark rounded-pill px-5 py-2 fw-bold shadow" onclick="runAIAnalysis()"><i class="bi bi-magic"></i> เริ่มวิเคราะห์ข้อมูล</button>
@@ -175,13 +204,11 @@
           <form id="recordForm">
             <input type="hidden" id="rowIdx">
             
-            <!-- ปรับปรุง Grid ตรงนี้ -->
             <div class="row g-3 mb-4 bg-white p-3 rounded-4 shadow-sm">
               <div class="col-12 col-md-6"><label class="fw-bold text-secondary">วันที่ <span class="text-danger">*</span></label><input type="date" class="form-control" id="f-date" required></div>
               <div class="col-12 col-md-6"><label class="fw-bold text-secondary">ผู้บันทึก</label><input type="text" class="form-control" id="f-recorder" placeholder="ชื่อผู้ลงข้อมูล"></div>
             </div>
             
-            <!-- ปรับปรุง Grid ตรงนี้ -->
             <div class="row g-3 mb-4 bg-white p-3 rounded-4 shadow-sm text-center">
               <div class="col-6 col-md-3"><div class="text-secondary fw-bold" style="font-size:0.8rem;">Staff/Day</div><div id="live-staff" class="fs-4 fw-bold text-primary">0</div></div>
               <div class="col-6 col-md-3"><div class="text-secondary fw-bold" style="font-size:0.8rem;">Patient/Day</div><div id="live-pt" class="fs-4 fw-bold text-primary">0</div></div>
@@ -239,7 +266,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
 
-  // URL ของ Apps Script Web App (ใช้ได้ทั้งตอนรันบน Apps Script โดยตรง และตอนรันบน GitHub Pages)
+  // URL ของ Apps Script Web App
   const API_URL = 'https://script.google.com/macros/s/AKfycbwe1hp6YKK7kRZHoty4AfoTmfikephVsr6JjCNVaMxAvCXynC-F2tYIq-YG0-eyJtkjhA/exec';
 
   function callServer(action, args) {
@@ -255,7 +282,7 @@
       });
   }
 
-  // ป้องกันการกรอกตัวเลขติดลบในทุกช่องกรอกตัวเลข (รวมถึงช่องความเสี่ยงที่สร้างภายหลัง)
+  // ป้องกันการกรอกตัวเลขติดลบ
   document.addEventListener('input', function (e) {
     if (e.target && e.target.matches && e.target.matches('input[type="number"]')) {
       if (e.target.value !== '' && Number(e.target.value) < 0) {
@@ -263,231 +290,290 @@
       }
     }
   });
+
   const riskNames = ["ข้อร้องเรียน", "ตัวกรองมีสารตกค้าง", "การใช้ตัวกรองสลับคน", "ให้ยา/สารน้ำผิด", "คิดค่าใช้จ่ายผิด", "บาดเจ็บจากการแทงเส้น", "แพ้เลือด", "แพ้ยา/สารน้ำ", "A-V เลื่อนหลุด", "Blood line หลุด", "Fistular aneurysm แตก", "เครื่องไตเทียมไม่พร้อม", "ระบบน้ำไม่พร้อม", "RO ปนเปื้อน", "RO แตกรั่ว", "Air embolism", "จนท.บาดเจ็บ", "จนท.ถูกเข็มตำ", "Sudden death", "Chest pain", "Cardiac arrhythmia", "Seizures", "Acute hemolysis", "Acute allergic", "Hypoxia", "Hypotension", "Hypertension", "ปวดศรีษะ", "Nausea vomiting", "Muscle cramp", "Chill", "Fever", "Disequilibrium", "First Use Syndrome", "Dialyzer leak", "Dialyzer clot"];
+  const rc = document.getElementById('riskContainer');
+  riskNames.forEach((name, idx) => { rc.innerHTML += `<div class="col-12 col-md-3"><label class="text-secondary fw-bold" style="font-size:0.75rem;">${name}</label><input type="number" class="form-control form-control-sm f-risk border-danger border-opacity-25" id="risk-${idx}" value="0"></div>`; });
+
+  const monthNames = { "1": "มกราคม", "2": "กุมภาพันธ์", "3": "มีนาคม", "4": "เมษายน", "5": "พฤษภาคม", "6": "มิถุนายน", "7": "กรกฎาคม", "8": "สิงหาคม", "9": "กันยายน", "10": "ตุลาคม", "11": "พฤศจิกายน", "12": "ธันวาคม" };
+
+  let rawDataStore = {};
+  let existingDates = {}; // ตัวแปรเก็บวันที่ไว้เช็คซ้ำ
+  let myCharts = {};
+  let myModal;
+  let currentTotals = {}; 
+
+  window.onload = () => { 
+    myModal = new bootstrap.Modal(document.getElementById('recordModal'));
+    loadData(true); 
+  };
+
+  function loadData(isInitial = false) {
+    document.getElementById('loader').style.display = 'block';
+    document.getElementById('pills-tabContent').style.display = 'none';
+    document.getElementById('aiResultContainer').style.display = 'none'; 
+    let m = isInitial ? "" : document.getElementById('filterMonth').value;
+    let y = isInitial ? "" : document.getElementById('filterYear').value;
+    let type = document.getElementById('filterYearType').value;
+    callServer('getData', [m, y, type]).then(updateUI).catch(function (err) { document.getElementById('loader').style.display = 'none'; Swal.fire('Error', err.message, 'error'); });
+  }
+
+  function updateUI(res) {
+    if (res.status === 'error') { Swal.fire('Error', res.message, 'error'); return; }
+    document.getElementById('filterMonth').value = res.currentFilter.month;
+    document.getElementById('filterYear').value = res.currentFilter.year;
+
+    const t = res.totals;
+    currentTotals = t; 
     
-    const rc = document.getElementById('riskContainer');
-    riskNames.forEach((name, idx) => { rc.innerHTML += `<div class="col-12 col-md-3"><label class="text-secondary fw-bold" style="font-size:0.75rem;">${name}</label><input type="number" class="form-control form-control-sm f-risk border-danger border-opacity-25" id="risk-${idx}" value="0"></div>`; });
+    // จัดการชื่อตาราง และ นับวันทำการ (จ-ศ)
+    let titleEl = document.getElementById('tableTitle');
+    let progEl = document.getElementById('workdayProgress');
 
-    let rawDataStore = {};
-    let myCharts = {};
-    let myModal;
-    let currentTotals = {}; 
-
-    window.onload = () => { 
-      myModal = new bootstrap.Modal(document.getElementById('recordModal'));
-      loadData(true); 
-    };
-
-    function loadData(isInitial = false) {
-      document.getElementById('loader').style.display = 'block';
-      document.getElementById('pills-tabContent').style.display = 'none';
-      document.getElementById('aiResultContainer').style.display = 'none'; 
-      let m = isInitial ? "" : document.getElementById('filterMonth').value;
-      let y = isInitial ? "" : document.getElementById('filterYear').value;
-      let type = document.getElementById('filterYearType').value;
-      callServer('getData', [m, y, type]).then(updateUI).catch(function (err) { document.getElementById('loader').style.display = 'none'; Swal.fire('Error', err.message, 'error'); });
+    if (res.currentFilter.month !== 'All' && res.currentFilter.year !== 'All') {
+      let yearBE = parseInt(res.currentFilter.year);
+      let monthStr = res.currentFilter.month;
+      let yearCE = yearBE - 543;
+      let monthIdx = parseInt(monthStr) - 1;
+      
+      // นับวันทำการของเดือนนั้น
+      let daysInMonth = new Date(yearCE, monthIdx + 1, 0).getDate();
+      let workDays = 0;
+      for (let i = 1; i <= daysInMonth; i++) {
+        let d = new Date(yearCE, monthIdx, i);
+        let day = d.getDay();
+        if (day !== 0 && day !== 6) workDays++; // วันอาทิตย์(0) เสาร์(6)
+      }
+      
+      titleEl.innerHTML = `<i class="bi bi-table text-mint"></i> ข้อมูลบันทึกประจำวัน (${monthNames[monthStr]} ${yearBE})`;
+      
+      let entered = res.records.length;
+      let missing = workDays - entered;
+      if (missing < 0) missing = 0; // เผื่อมีการทำล่วงเวลาในวันหยุด
+      
+      let blinkHtml = missing > 0 ? `<span class="blink-danger"><i class="bi bi-exclamation-circle-fill"></i> ขาด ${missing} วันทำการ</span>` : `<span class="text-success fw-bold"><i class="bi bi-check-circle-fill"></i> ครบถ้วน!</span>`;
+      
+      progEl.innerHTML = `วันทำการเดือนนี้: <strong class="text-dark">${workDays}</strong> วัน | ลงข้อมูลแล้ว: <strong class="text-primary">${entered}</strong> วัน | ${blinkHtml}`;
+    } else {
+      titleEl.innerHTML = `<i class="bi bi-table text-mint"></i> ข้อมูลบันทึกประจำวัน`;
+      progEl.innerHTML = ``;
     }
+    
+    // นำข้อมูลในตารางมาเรียงวันที่ (น้อยไปมาก)
+    res.records.sort((a, b) => new Date(a.raw[0]) - new Date(b.raw[0]));
 
-    function updateUI(res) {
-      if (res.status === 'error') { Swal.fire('Error', res.message, 'error'); return; }
-      document.getElementById('filterMonth').value = res.currentFilter.month;
-      document.getElementById('filterYear').value = res.currentFilter.year;
+    // อัพเดทสถิติ
+    document.getElementById('c-staffday').innerText = t.AvgStaffDay; document.getElementById('c-ptday').innerText = t.AvgPatientDay;
+    document.getElementById('c-totalpt').innerText = t.PatientDay; document.getElementById('c-nhppd').innerText = t.AvgNHPPD;
+    document.getElementById('c-prod').innerText = t.AvgProd + '%'; document.getElementById('c-hn').innerText = t.HN; 
+    document.getElementById('c-rn').innerText = t.RN; document.getElementById('c-pn').innerText = t.PN; document.getElementById('c-na').innerText = t.NA;
+    document.getElementById('c-rnmeet').innerText = t.rnMeet; document.getElementById('c-nameet').innerText = t.naMeet;
+    document.getElementById('c-ahd').innerText = t.AHD; document.getElementById('c-chd').innerText = t.CHD;
+    document.getElementById('c-rrt').innerText = t.RRT; document.getElementById('c-or').innerText = t.OR;
+    document.getElementById('c-dlc').innerText = t.DLC; document.getElementById('c-kbx').innerText = t.KBx;
+    document.getElementById('c-cons').innerText = t.Cons; document.getElementById('c-wound').innerText = t.wound;
+    document.getElementById('c-hdout').innerText = t.HDOut; document.getElementById('c-eid').innerText = t.EID;
+    document.getElementById('c-icu').innerText = t.ICU; document.getElementById('c-hiv').innerText = t.HIV;
 
-      const t = res.totals;
-      currentTotals = t; 
-      
-      document.getElementById('c-staffday').innerText = t.AvgStaffDay;
-      document.getElementById('c-ptday').innerText = t.AvgPatientDay;
-      document.getElementById('c-totalpt').innerText = t.PatientDay; 
-      document.getElementById('c-nhppd').innerText = t.AvgNHPPD;
-      document.getElementById('c-prod').innerText = t.AvgProd + '%';
-      
-      document.getElementById('c-hn').innerText = t.HN; document.getElementById('c-rn').innerText = t.RN;
-      document.getElementById('c-pn').innerText = t.PN; document.getElementById('c-na').innerText = t.NA;
-      document.getElementById('c-rnmeet').innerText = t.rnMeet; document.getElementById('c-nameet').innerText = t.naMeet;
-      
-      document.getElementById('c-ahd').innerText = t.AHD; document.getElementById('c-chd').innerText = t.CHD;
-      document.getElementById('c-rrt').innerText = t.RRT; document.getElementById('c-or').innerText = t.OR;
-      document.getElementById('c-dlc').innerText = t.DLC; document.getElementById('c-kbx').innerText = t.KBx;
-      document.getElementById('c-cons').innerText = t.Cons; document.getElementById('c-wound').innerText = t.wound;
-      document.getElementById('c-hdout').innerText = t.HDOut; document.getElementById('c-eid').innerText = t.EID;
-      document.getElementById('c-icu').innerText = t.ICU; document.getElementById('c-hiv').innerText = t.HIV;
+    let riskHtml = '';
+    t.risks.forEach((val, idx) => {
+      let isDanger = val > 0;
+      let borderClass = isDanger ? 'border-danger border-2' : 'border-light';
+      let textClass = isDanger ? 'text-danger' : 'text-secondary opacity-50';
+      riskHtml += `<div class="col-4 col-md-3 col-lg-2"><div class="stat-card bg-white shadow-sm ${borderClass} p-2"><div class="stat-title" style="font-size:0.7rem; line-height:1;">${riskNames[idx]}</div><div class="stat-value ${textClass} fs-5 mt-1">${val}</div></div></div>`;
+    });
+    document.getElementById('dashboardRisks').innerHTML = riskHtml;
 
-      let riskHtml = '';
-      t.risks.forEach((val, idx) => {
-        let isDanger = val > 0;
-        let borderClass = isDanger ? 'border-danger border-2' : 'border-light';
-        let textClass = isDanger ? 'text-danger' : 'text-secondary opacity-50';
-        riskHtml += `<div class="col-4 col-md-3 col-lg-2"><div class="stat-card bg-white shadow-sm ${borderClass} p-2"><div class="stat-title" style="font-size:0.7rem; line-height:1;">${riskNames[idx]}</div><div class="stat-value ${textClass} fs-5 mt-1">${val}</div></div></div>`;
+    drawCharts(res.chartData, res.currentFilter.year);
+
+    let tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    rawDataStore = {};
+    existingDates = {}; // รีเซ็ตตัวแปรเช็คซ้ำ
+    
+    if(res.records.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-muted py-4">ไม่มีข้อมูลในระบบ</td></tr>';
+    } else {
+      res.records.forEach(r => {
+        rawDataStore[r.rowIdx] = r.raw;
+        
+        // เก็บวันที่ในรูปแบบ YYYY-MM-DD สำหรับเช็คการซ้ำซ้อน
+        let d = new Date(r.raw[0]); 
+        let dateStr = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        existingDates[r.rowIdx] = dateStr;
+
+        tbody.innerHTML += `<tr>
+          <td class="fw-bold">${r.date}</td><td class="text-primary fw-bold">${r.staffDay}</td>
+          <td class="text-primary fw-bold">${r.patientDay}</td><td class="text-success fw-bold">${r.prod}%</td>
+          <td>
+            <button class="btn btn-sm btn-light text-primary shadow-sm me-1" onclick="editData(${r.rowIdx})"><i class="bi bi-pencil-fill"></i></button>
+            <button class="btn btn-sm btn-light text-danger shadow-sm" onclick="confirmDelete(${r.rowIdx})"><i class="bi bi-trash-fill"></i></button>
+          </td>
+        </tr>`;
       });
-      document.getElementById('dashboardRisks').innerHTML = riskHtml;
+    }
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('pills-tabContent').style.display = 'block';
+  }
 
-      drawCharts(res.chartData, res.currentFilter.year);
+  function drawCharts(data, targetYear) {
+    const ty = targetYear === 'All' ? new Date().getFullYear()+543 : parseInt(targetYear);
+    if(myCharts.prod) myCharts.prod.destroy();
+    if(myCharts.totalPt) myCharts.totalPt.destroy();
+    if(myCharts.types) myCharts.types.destroy();
 
-      let tbody = document.getElementById('tableBody');
-      tbody.innerHTML = '';
-      rawDataStore = {};
-      if(res.records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-muted py-4">ไม่มีข้อมูลในระบบ</td></tr>';
-      } else {
-        res.records.forEach(r => {
-          rawDataStore[r.rowIdx] = r.raw;
-          tbody.innerHTML += `<tr>
-            <td class="fw-bold">${r.date}</td><td class="text-primary fw-bold">${r.staffDay}</td>
-            <td class="text-primary fw-bold">${r.patientDay}</td><td class="text-success fw-bold">${r.prod}%</td>
-            <td>
-              <button class="btn btn-sm btn-light text-primary shadow-sm me-1" onclick="editData(${r.rowIdx})"><i class="bi bi-pencil-fill"></i></button>
-              <button class="btn btn-sm btn-light text-danger shadow-sm" onclick="confirmDelete(${r.rowIdx})"><i class="bi bi-trash-fill"></i></button>
-            </td>
-          </tr>`;
+    Chart.defaults.font.family = 'Sarabun';
+    
+    myCharts.prod = new Chart(document.getElementById('chartProd'), {
+      type: 'line',
+      data: { labels: data.labels, datasets: [
+          { label: `ปี ${ty}`, data: data.prodY0, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4, borderWidth: 3 },
+          { label: `ปี ${ty-1}`, data: data.prodY1, borderColor: '#3b82f6', borderDash: [5,5], tension: 0.4 },
+          { label: `ปี ${ty-2}`, data: data.prodY2, borderColor: '#94a3b8', borderDash: [2,2], tension: 0.4 }
+      ]}, options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    myCharts.totalPt = new Chart(document.getElementById('chartTotalPt'), {
+      type: 'bar',
+      data: { labels: data.labels, datasets: [{ label: 'ผู้รับบริการรวม', data: data.totalPt, backgroundColor: '#10b981', borderRadius: 8 }]},
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    const t = data.types;
+    myCharts.types = new Chart(document.getElementById('chartTypes'), {
+      type: 'line',
+      data: { labels: data.labels, datasets: [
+          { label: 'AHD', data: t.AHD, borderColor: '#ef4444', tension: 0.3 }, { label: 'CHD', data: t.CHD, borderColor: '#f97316', tension: 0.3 },
+          { label: 'RRT', data: t.RRT, borderColor: '#eab308', tension: 0.3 }, { label: 'OR', data: t.OR, borderColor: '#22c55e', tension: 0.3 },
+          { label: 'DLC', data: t.DLC, borderColor: '#14b8a6', tension: 0.3 }, { label: 'KBx', data: t.KBx, borderColor: '#06b6d4', tension: 0.3 },
+          { label: 'Cons', data: t.Cons, borderColor: '#3b82f6', tension: 0.3 }, { label: 'HD นอก', data: t.HDOut, borderColor: '#6366f1', borderDash:[2,2] },
+          { label: 'EID', data: t.EID, borderColor: '#8b5cf6', borderDash:[2,2] }, { label: 'ICU', data: t.ICU, borderColor: '#d946ef', borderDash:[2,2] },
+          { label: 'HIV', data: t.HIV, borderColor: '#f43f5e', borderDash:[2,2] }
+      ]}, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10 } } } }
+    });
+  }
+
+  const calcInputs = document.querySelectorAll('.calc-input');
+  calcInputs.forEach(input => input.addEventListener('input', calculateLive));
+
+  function calculateLive() {
+    const getVal = (id) => Number(document.getElementById(id).value) || 0;
+    let staffDay = getVal('f-rn') + getVal('f-pn');
+    
+    let ptDay = getVal('f-ahd') + getVal('f-chd') + getVal('f-rrt') + getVal('f-or') + getVal('f-dlc') + getVal('f-kbx') + getVal('f-cons') + getVal('f-wound');
+    let reqHours = (getVal('f-ahd')*3) + (getVal('f-chd')*3) + (getVal('f-rrt')*2) + (getVal('f-or')*3) + (getVal('f-dlc')*0.5) + (getVal('f-kbx')*0.5) + (getVal('f-cons')*0.75) + (getVal('f-wound')*0.2);
+    
+    let availHours = staffDay * 7;
+    document.getElementById('live-staff').innerText = staffDay;
+    document.getElementById('live-pt').innerText = ptDay;
+    document.getElementById('live-nhppd').innerText = ptDay > 0 ? (reqHours / ptDay).toFixed(2) : 0;
+    document.getElementById('live-prod').innerText = (availHours > 0 ? ((reqHours / availHours) * 100).toFixed(2) : 0) + '%';
+  }
+
+  function openModal() { 
+    document.getElementById('recordForm').reset(); 
+    document.getElementById('rowIdx').value = ''; 
+    document.getElementById('f-date').valueAsDate = new Date(); 
+    calculateLive(); 
+    myModal.show(); 
+  }
+
+  function editData(rowIdx) {
+    const raw = rawDataStore[rowIdx]; 
+    document.getElementById('rowIdx').value = rowIdx;
+    let d = new Date(raw[0]); 
+    document.getElementById('f-date').value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    document.getElementById('f-hn').value = raw[1]; document.getElementById('f-rn').value = raw[2]; document.getElementById('f-pn').value = raw[3]; document.getElementById('f-na').value = raw[4];
+    document.getElementById('f-ahd').value = raw[5]; document.getElementById('f-chd').value = raw[6]; document.getElementById('f-rrt').value = raw[7]; document.getElementById('f-or').value = raw[8]; document.getElementById('f-dlc').value = raw[9]; document.getElementById('f-kbx').value = raw[10]; document.getElementById('f-cons').value = raw[11]; document.getElementById('f-wound').value = raw[12];
+    document.getElementById('f-hdout').value = raw[17]; document.getElementById('f-eid').value = raw[18]; document.getElementById('f-icu').value = raw[19]; document.getElementById('f-hiv').value = raw[20];
+    document.getElementById('f-rnmeet').value = raw[21]; document.getElementById('f-nameet').value = raw[22];
+    for(let i=0; i<36; i++) { document.getElementById('risk-'+i).value = raw[23+i] || 0; }
+    calculateLive(); 
+    myModal.show();
+  }
+
+  function saveData() {
+    let inputDate = document.getElementById('f-date').value;
+    if(!inputDate) return Swal.fire({ icon: 'warning', title: 'เดี๋ยวก่อน!', text: 'กรุณาเลือกวันที่ด้วยครับ' });
+
+    let currentRowIdx = document.getElementById('rowIdx').value;
+    
+    // ตรวจสอบว่าเลือกวันที่ตรงกับข้อมูลอื่นที่มีอยู่แล้วหรือไม่
+    for (let key in existingDates) {
+      if (key !== currentRowIdx && existingDates[key] === inputDate) {
+        return Swal.fire({ 
+          icon: 'warning', 
+          title: 'วันที่ซ้ำซ้อน!', 
+          text: 'วันที่ที่คุณเลือก มีการลงข้อมูลไว้ในระบบแล้ว กรุณาเลือกวันที่อื่น หรือแก้ไขข้อมูลของวันนั้นแทนครับ',
+          confirmButtonColor: '#047857'
         });
       }
-      document.getElementById('loader').style.display = 'none';
-      document.getElementById('pills-tabContent').style.display = 'block';
     }
 
-    function drawCharts(data, targetYear) {
-      const ty = targetYear === 'All' ? new Date().getFullYear()+543 : parseInt(targetYear);
-      if(myCharts.prod) myCharts.prod.destroy();
-      if(myCharts.totalPt) myCharts.totalPt.destroy();
-      if(myCharts.types) myCharts.types.destroy();
-
-      Chart.defaults.font.family = 'Sarabun';
-      
-      myCharts.prod = new Chart(document.getElementById('chartProd'), {
-        type: 'line',
-        data: { labels: data.labels, datasets: [
-            { label: `ปี ${ty}`, data: data.prodY0, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4, borderWidth: 3 },
-            { label: `ปี ${ty-1}`, data: data.prodY1, borderColor: '#3b82f6', borderDash: [5,5], tension: 0.4 },
-            { label: `ปี ${ty-2}`, data: data.prodY2, borderColor: '#94a3b8', borderDash: [2,2], tension: 0.4 }
-        ]}, options: { responsive: true, maintainAspectRatio: false }
-      });
-
-      myCharts.totalPt = new Chart(document.getElementById('chartTotalPt'), {
-        type: 'bar',
-        data: { labels: data.labels, datasets: [{ label: 'ผู้รับบริการรวม', data: data.totalPt, backgroundColor: '#10b981', borderRadius: 8 }]},
-        options: { responsive: true, maintainAspectRatio: false }
-      });
-
-      const t = data.types;
-      myCharts.types = new Chart(document.getElementById('chartTypes'), {
-        type: 'line',
-        data: { labels: data.labels, datasets: [
-            { label: 'AHD', data: t.AHD, borderColor: '#ef4444', tension: 0.3 }, { label: 'CHD', data: t.CHD, borderColor: '#f97316', tension: 0.3 },
-            { label: 'RRT', data: t.RRT, borderColor: '#eab308', tension: 0.3 }, { label: 'OR', data: t.OR, borderColor: '#22c55e', tension: 0.3 },
-            { label: 'DLC', data: t.DLC, borderColor: '#14b8a6', tension: 0.3 }, { label: 'KBx', data: t.KBx, borderColor: '#06b6d4', tension: 0.3 },
-            { label: 'Cons', data: t.Cons, borderColor: '#3b82f6', tension: 0.3 }, { label: 'HD นอก', data: t.HDOut, borderColor: '#6366f1', borderDash:[2,2] },
-            { label: 'EID', data: t.EID, borderColor: '#8b5cf6', borderDash:[2,2] }, { label: 'ICU', data: t.ICU, borderColor: '#d946ef', borderDash:[2,2] },
-            { label: 'HIV', data: t.HIV, borderColor: '#f43f5e', borderDash:[2,2] }
-        ]}, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10 } } } }
-      });
-    }
-
-    const calcInputs = document.querySelectorAll('.calc-input');
-    calcInputs.forEach(input => input.addEventListener('input', calculateLive));
-
-    function calculateLive() {
-      const getVal = (id) => Number(document.getElementById(id).value) || 0;
-      let staffDay = getVal('f-rn') + getVal('f-pn');
-      
-      let ptDay = getVal('f-ahd') + getVal('f-chd') + getVal('f-rrt') + getVal('f-or') + getVal('f-dlc') + getVal('f-kbx') + getVal('f-cons') + getVal('f-wound');
-      let reqHours = (getVal('f-ahd')*3) + (getVal('f-chd')*3) + (getVal('f-rrt')*2) + (getVal('f-or')*3) + (getVal('f-dlc')*0.5) + (getVal('f-kbx')*0.5) + (getVal('f-cons')*0.75) + (getVal('f-wound')*0.2);
-      
-      let availHours = staffDay * 7;
-      document.getElementById('live-staff').innerText = staffDay;
-      document.getElementById('live-pt').innerText = ptDay;
-      document.getElementById('live-nhppd').innerText = ptDay > 0 ? (reqHours / ptDay).toFixed(2) : 0;
-      document.getElementById('live-prod').innerText = (availHours > 0 ? ((reqHours / availHours) * 100).toFixed(2) : 0) + '%';
-    }
-
-    function openModal() { 
-      document.getElementById('recordForm').reset(); 
-      document.getElementById('rowIdx').value = ''; 
-      document.getElementById('f-date').valueAsDate = new Date(); 
-      calculateLive(); 
-      myModal.show(); 
-    }
-
-    function editData(rowIdx) {
-      const raw = rawDataStore[rowIdx]; 
-      document.getElementById('rowIdx').value = rowIdx;
-      let d = new Date(raw[0]); 
-      document.getElementById('f-date').value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-      document.getElementById('f-hn').value = raw[1]; document.getElementById('f-rn').value = raw[2]; document.getElementById('f-pn').value = raw[3]; document.getElementById('f-na').value = raw[4];
-      document.getElementById('f-ahd').value = raw[5]; document.getElementById('f-chd').value = raw[6]; document.getElementById('f-rrt').value = raw[7]; document.getElementById('f-or').value = raw[8]; document.getElementById('f-dlc').value = raw[9]; document.getElementById('f-kbx').value = raw[10]; document.getElementById('f-cons').value = raw[11]; document.getElementById('f-wound').value = raw[12];
-      document.getElementById('f-hdout').value = raw[17]; document.getElementById('f-eid').value = raw[18]; document.getElementById('f-icu').value = raw[19]; document.getElementById('f-hiv').value = raw[20];
-      document.getElementById('f-rnmeet').value = raw[21]; document.getElementById('f-nameet').value = raw[22];
-      for(let i=0; i<36; i++) { document.getElementById('risk-'+i).value = raw[23+i] || 0; }
-      calculateLive(); 
-      myModal.show();
-    }
-
-    function saveData() {
-      if(!document.getElementById('f-date').value) return Swal.fire({ icon: 'warning', title: 'เดี๋ยวก่อน!', text: 'กรุณาเลือกวันที่ด้วยครับ' });
-      calculateLive(); 
-      let risks = []; 
-      for(let i=0; i<36; i++) { risks.push(document.getElementById('risk-'+i).value); }
-      const obj = { 
-        rowIdx: document.getElementById('rowIdx').value, date: document.getElementById('f-date').value, 
-        hn: document.getElementById('f-hn').value, rn: document.getElementById('f-rn').value, pn: document.getElementById('f-pn').value, na: document.getElementById('f-na').value, 
-        ahd: document.getElementById('f-ahd').value, chd: document.getElementById('f-chd').value, rrt: document.getElementById('f-rrt').value, or: document.getElementById('f-or').value, dlc: document.getElementById('f-dlc').value, kbx: document.getElementById('f-kbx').value, cons: document.getElementById('f-cons').value, wound: document.getElementById('f-wound').value, hdout: document.getElementById('f-hdout').value, eid: document.getElementById('f-eid').value, icu: document.getElementById('f-icu').value, hiv: document.getElementById('f-hiv').value, rnMeet: document.getElementById('f-rnmeet').value, naMeet: document.getElementById('f-nameet').value, 
-        staffDay: document.getElementById('live-staff').innerText, patientDay: document.getElementById('live-pt').innerText, nhppd: document.getElementById('live-nhppd').innerText, prod: document.getElementById('live-prod').innerText.replace('%',''), risks: risks 
-      };
-      
-      Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      callServer('saveRecord', [obj]).then(() => { 
-        myModal.hide(); 
-        Swal.fire({ icon: 'success', title: 'เย้! สำเร็จแล้ว', text: 'บันทึกข้อมูลภาระงานเรียบร้อย', confirmButtonColor: '#10b981', timer: 1500, showConfirmButton: false, timerProgressBar: true });
-        loadData(); 
-      }).catch(function (err) { Swal.fire('Error', err.message, 'error'); });
-    }
+    calculateLive(); 
+    let risks = []; 
+    for(let i=0; i<36; i++) { risks.push(document.getElementById('risk-'+i).value); }
+    const obj = { 
+      rowIdx: currentRowIdx, date: inputDate, 
+      hn: document.getElementById('f-hn').value, rn: document.getElementById('f-rn').value, pn: document.getElementById('f-pn').value, na: document.getElementById('f-na').value, 
+      ahd: document.getElementById('f-ahd').value, chd: document.getElementById('f-chd').value, rrt: document.getElementById('f-rrt').value, or: document.getElementById('f-or').value, dlc: document.getElementById('f-dlc').value, kbx: document.getElementById('f-kbx').value, cons: document.getElementById('f-cons').value, wound: document.getElementById('f-wound').value, hdout: document.getElementById('f-hdout').value, eid: document.getElementById('f-eid').value, icu: document.getElementById('f-icu').value, hiv: document.getElementById('f-hiv').value, rnMeet: document.getElementById('f-rnmeet').value, naMeet: document.getElementById('f-nameet').value, 
+      staffDay: document.getElementById('live-staff').innerText, patientDay: document.getElementById('live-pt').innerText, nhppd: document.getElementById('live-nhppd').innerText, prod: document.getElementById('live-prod').innerText.replace('%',''), risks: risks 
+    };
     
-    function confirmDelete(rowIdx) { 
-      Swal.fire({ title: 'แน่ใจหรือไม่?', text: "ข้อมูลนี้จะถูกลบอย่างถาวร!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'ลบเลย!' }).then((res) => { 
-        if (res.isConfirmed) { 
-          Swal.fire({ title: 'กำลังลบ...', didOpen: () => Swal.showLoading() }); 
-          callServer('deleteRecord', [rowIdx]).then(() => {
-            Swal.fire({ icon: 'success', title: 'ลบเรียบร้อย', confirmButtonColor: '#10b981' }); 
-            loadData(); 
-          }).catch(function (err) { Swal.fire('Error', err.message, 'error'); });
-        } 
-      }); 
-    }
+    Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    callServer('saveRecord', [obj]).then(() => { 
+      myModal.hide(); 
+      Swal.fire({ icon: 'success', title: 'เย้! สำเร็จแล้ว', text: 'บันทึกข้อมูลภาระงานเรียบร้อย', confirmButtonColor: '#10b981', timer: 1500, showConfirmButton: false, timerProgressBar: true });
+      loadData(); 
+    }).catch(function (err) { Swal.fire('Error', err.message, 'error'); });
+  }
+  
+  function confirmDelete(rowIdx) { 
+    Swal.fire({ title: 'แน่ใจหรือไม่?', text: "ข้อมูลนี้จะถูกลบอย่างถาวร!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'ลบเลย!' }).then((res) => { 
+      if (res.isConfirmed) { 
+        Swal.fire({ title: 'กำลังลบ...', didOpen: () => Swal.showLoading() }); 
+        callServer('deleteRecord', [rowIdx]).then(() => {
+          Swal.fire({ icon: 'success', title: 'ลบเรียบร้อย', confirmButtonColor: '#10b981' }); 
+          loadData(); 
+        }).catch(function (err) { Swal.fire('Error', err.message, 'error'); });
+      } 
+    }); 
+  }
 
-    function runAIAnalysis() {
-      let period = `เดือน ${document.getElementById('filterMonth').options[document.getElementById('filterMonth').selectedIndex].text} ปี ${document.getElementById('filterYear').value}`;
-      let riskStr = "";
-      currentTotals.risks.forEach((val, idx) => { if(val > 0) riskStr += `- ${riskNames[idx]}: ${val} ครั้ง\n`; });
-      if(riskStr === "") riskStr = "- ไม่มีอุบัติการณ์ความเสี่ยง\n";
+  function runAIAnalysis() {
+    let period = `เดือน ${document.getElementById('filterMonth').options[document.getElementById('filterMonth').selectedIndex].text} ปี ${document.getElementById('filterYear').value}`;
+    let riskStr = "";
+    currentTotals.risks.forEach((val, idx) => { if(val > 0) riskStr += `- ${riskNames[idx]}: ${val} ครั้ง\n`; });
+    if(riskStr === "") riskStr = "- ไม่มีอุบัติการณ์ความเสี่ยง\n";
 
-      let summary = `
-      ช่วงเวลาที่ประเมิน: ${period}
-      1. ข้อมูลภาพรวม:
-      - % Productivity เฉลี่ย: ${currentTotals.AvgProd}%
-      - อัตรากำลังเฉลี่ย (Staff/Day): ${currentTotals.AvgStaffDay} คน/วัน
-      - ผู้ป่วยเฉลี่ย (Patient/Day): ${currentTotals.AvgPatientDay} ราย/วัน
-      - ยอดผู้ป่วยสะสม: ${currentTotals.PatientDay} ราย
-      
-      2. ข้อมูลบุคลากรและการพัฒนา:
-      - พยาบาลวิชาชีพ (RN) รวม: ${currentTotals.RN}
-      - ผู้ช่วยพยาบาล (PN) รวม: ${currentTotals.PN}
-      - จำนวนชั่วโมง RN อบรม/ประชุม: ${currentTotals.rnMeet} ชม.
-      - จำนวนชั่วโมง NA อบรม/ประชุม: ${currentTotals.naMeet} ชม.
+    let summary = `
+    ช่วงเวลาที่ประเมิน: ${period}
+    1. ข้อมูลภาพรวม:
+    - % Productivity เฉลี่ย: ${currentTotals.AvgProd}%
+    - อัตรากำลังเฉลี่ย (Staff/Day): ${currentTotals.AvgStaffDay} คน/วัน
+    - ผู้ป่วยเฉลี่ย (Patient/Day): ${currentTotals.AvgPatientDay} ราย/วัน
+    - ยอดผู้ป่วยสะสม: ${currentTotals.PatientDay} ราย
+    
+    2. ข้อมูลบุคลากรและการพัฒนา:
+    - พยาบาลวิชาชีพ (RN) รวม: ${currentTotals.RN}
+    - ผู้ช่วยพยาบาล (PN) รวม: ${currentTotals.PN}
+    - จำนวนชั่วโมง RN อบรม/ประชุม: ${currentTotals.rnMeet} ชม.
+    - จำนวนชั่วโมง NA อบรม/ประชุม: ${currentTotals.naMeet} ชม.
 
-      3. อุบัติการณ์ความเสี่ยงที่เกิดขึ้น (Incident Report):
-      ${riskStr}
-      `;
+    3. อุบัติการณ์ความเสี่ยงที่เกิดขึ้น (Incident Report):
+    ${riskStr}
+    `;
 
-      Swal.fire({ title: 'AI กำลังประเมินผล...', html: 'กำลังวิเคราะห์ภาพรวมองค์กร...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      
-      callServer('analyzeWithGemini', [summary]).then(res => {
-        Swal.close();
-        document.getElementById('aiResultContainer').style.display = 'block';
-        let formattedText = res.replace(/\*\*(.*?)\*\*/g, '<strong class="text-mint-dark">$1</strong>').replace(/\n/g, '<br>');
-        document.getElementById('aiResultText').innerHTML = formattedText;
-        document.getElementById('aiResultContainer').scrollIntoView({ behavior: 'smooth' });
-      }).catch(function (err) { Swal.close(); Swal.fire('Error', err.message, 'error'); });
-    }
+    Swal.fire({ title: 'AI กำลังประเมินผล...', html: 'กำลังวิเคราะห์ภาพรวมองค์กร...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    
+    callServer('analyzeWithGemini', [summary]).then(res => {
+      Swal.close();
+      document.getElementById('aiResultContainer').style.display = 'block';
+      let formattedText = res.replace(/\*\*(.*?)\*\*/g, '<strong class="text-mint-dark">$1</strong>').replace(/\n/g, '<br>');
+      document.getElementById('aiResultText').innerHTML = formattedText;
+      document.getElementById('aiResultContainer').scrollIntoView({ behavior: 'smooth' });
+    }).catch(function (err) { Swal.close(); Swal.fire('Error', err.message, 'error'); });
+  }
   </script>
 </body>
 </html>
