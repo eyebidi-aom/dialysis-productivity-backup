@@ -468,7 +468,7 @@
         payload[f.id] = document.getElementById("kpi-" + f.id).value || 0;
       });
       Swal.fire({ title: "กำลังส่งข้อมูล...", allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
-      google.script.run.withSuccessHandler(function(res) {
+      callServer('saveMonthlyKPI', [payload]).then(function(res) {
         if (res.status === "success") {
           bootstrap.Modal.getInstance(document.getElementById("kpiModal")).hide();
           Swal.fire({ icon: "success", title: "สำเร็จ!", text: res.message, confirmButtonColor: "#047857" });
@@ -477,9 +477,9 @@
         } else {
           Swal.fire({ icon: "error", title: "เกิดข้อผิดพลาด", text: res.message, confirmButtonColor: "#047857" });
         }
-      }).withFailureHandler(function(err) {
+      }).catch(function(err) {
         Swal.fire({ icon: "error", title: "เกิดข้อผิดพลาด", text: err.message, confirmButtonColor: "#047857" });
-      }).saveMonthlyKPI(payload);
+      });
     }
 
     window.onload = () => { 
