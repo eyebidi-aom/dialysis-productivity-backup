@@ -704,10 +704,16 @@
       };
       
       Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      callServer('saveRecord', [obj]).then(() => { 
-        myModal.hide(); 
-        Swal.fire({ icon: 'success', title: 'เย้! สำเร็จแล้ว', text: 'บันทึกข้อมูลภาระงานเรียบร้อย', confirmButtonColor: '#10b981', timer: 1500, showConfirmButton: false, timerProgressBar: true });
-        loadData(); 
+      callServer('saveRecord', [obj]).then(function(res) {
+        if (res && res.status === 'duplicate') {
+          Swal.fire({ icon: 'warning', title: 'มีข้อมูลวันที่นี้แล้ว', text: res.message, confirmButtonColor: '#047857' });
+        } else if (res && res.status === 'error') {
+          Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: res.message, confirmButtonColor: '#047857' });
+        } else {
+          myModal.hide(); 
+          Swal.fire({ icon: 'success', title: 'เย้! สำเร็จแล้ว', text: 'บันทึกข้อมูลภาระงานเรียบร้อย', confirmButtonColor: '#10b981', timer: 1500, showConfirmButton: false, timerProgressBar: true });
+          loadData(); 
+        }
       }).catch(function (err) { Swal.fire('Error', err.message, 'error'); });
     }
     
