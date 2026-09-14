@@ -659,7 +659,8 @@
     function openModal() { 
       document.getElementById('recordForm').reset(); 
       document.getElementById('rowIdx').value = ''; 
-      document.getElementById('f-date').valueAsDate = new Date(); 
+      const __now = new Date();
+      document.getElementById('f-date').value = __now.getFullYear() + '-' + String(__now.getMonth()+1).padStart(2,'0') + '-' + String(__now.getDate()).padStart(2,'0');
       document.getElementById('meetInfoBox').style.display = 'none';
       calculateLive(); 
       myModal.show(); 
