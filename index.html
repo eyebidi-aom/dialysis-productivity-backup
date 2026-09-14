@@ -703,7 +703,21 @@
         staffDay: document.getElementById('live-staff').innerText, patientDay: document.getElementById('live-pt').innerText, nhppd: document.getElementById('live-nhppd').innerText, prod: document.getElementById('live-prod').innerText.replace('%',''), risks: risks,
         recorder: document.getElementById('f-recorder').value, meetTopic: meetTopicVal, meetPerson: meetPersonVal
       };
-      
+
+      if (Number(obj.staffDay) === 0) {
+        Swal.fire({
+          icon: 'warning', title: 'ยังไม่ได้กรอกจำนวนบุคลากร?',
+          text: 'พบว่า RN + PN รวมเป็น 0 คน ทำให้ %Productivity จะคำนวณออกมาเป็น 0% ต้องการบันทึกต่อเลยหรือไม่',
+          showCancelButton: true, confirmButtonText: 'บันทึกต่อ', cancelButtonText: 'ย้อนกลับไปแก้ไข', confirmButtonColor: '#f59e0b', cancelButtonColor: '#6b7280'
+        }).then(function(result) {
+          if (result.isConfirmed) { proceedSaveData(obj); }
+        });
+      } else {
+        proceedSaveData(obj);
+      }
+    }
+
+    function proceedSaveData(obj) {
       Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
       callServer('saveRecord', [obj]).then(function(res) {
         if (res && res.status === 'duplicate') {
