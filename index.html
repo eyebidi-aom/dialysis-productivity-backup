@@ -221,9 +221,11 @@
                   <div class="col-12 col-md-2"><label class="form-label text-secondary">NA ประชุม (ช.ม.)</label><input type="number" step="0.1" min="0" class="form-control meet-input" id="f-nameet" value="0"></div>
                 </div>
                 <div class="row g-3 mb-4" id="meetInfoBox" style="display:none;">
-                  <div class="col-12"><div class="alert alert-warning py-2 px-3 mb-2" style="font-size:0.8rem;"><i class="bi bi-info-circle-fill"></i> มีการลงชั่วโมงประชุม/อบรม กรุณาระบุรายละเอียดด้านล่างด้วย</div></div>
-                  <div class="col-12 col-md-6"><label class="form-label text-secondary">หัวข้อการประชุม/อบรม <span class="text-danger">*</span></label><input type="text" class="form-control" id="f-meettopic" placeholder="เช่น อบรมฟื้นฟูวิชาการไตเทียมประจำปี"></div>
-                  <div class="col-12 col-md-6"><label class="form-label text-secondary">ผู้เข้าประชุม/อบรม (คั่นด้วย , หากมีหลายคน) <span class="text-danger">*</span></label><input type="text" class="form-control" id="f-meetperson" placeholder="เช่น สมชาย ใจดี, สมหญิง รักงาน"></div>
+                  <div class="col-12"><div class="alert alert-warning py-2 px-3 mb-2" style="font-size:0.8rem;"><i class="bi bi-info-circle-fill"></i> มีการลงชั่วโมงประชุม/อบรม กรุณาระบุหัวข้อและผู้เข้าร่วมด้านล่าง (หากมีหลายหัวข้อ กดปุ่ม เพิ่มหัวข้อ แล้วใส่รายชื่อแยกตามหัวข้อได้เลย)</div></div>
+                  <div class="col-12">
+                    <div id="meetTopicRows"></div>
+                    <button type="button" class="btn btn-sm btn-outline-success mt-1" onclick="addMeetTopicRow('','')"><i class="bi bi-plus-circle"></i> เพิ่มหัวข้อ</button>
+                  </div>
                 </div>
                 <h6 class="fw-bold text-success border-bottom pb-2 mb-3"><i class="bi bi-heart-pulse-fill"></i> การให้บริการ</h6>
                 <div class="row g-3 mb-4">
@@ -375,6 +377,103 @@
       const rn = Number(document.getElementById('f-rnmeet').value) || 0;
       const na = Number(document.getElementById('f-nameet').value) || 0;
       document.getElementById('meetInfoBox').style.display = (rn > 0 || na > 0) ? 'flex' : 'none';
+      if ((rn > 0 || na > 0) && document.querySelectorAll('#meetTopicRows .meet-topic-row').length === 0) { addMeetTopicRow('', ''); }
+    }
+    function addMeetTopicRow(topic, person) {
+      const container = document.getElementById('meetTopicRows');
+      const div = document.createElement('div');
+      div.className = 'row g-2 mb-2 meet-topic-row align-items-start';
+      div.innerHTML = '<div class="col-auto pt-2"><span class="badge bg-secondary meet-row-num"></span></div>' +
+        '<div class="col-12 col-md-5"><input type="text" class="form-control form-control-sm meet-topic-input" placeholder="หัวข้อ/เรื่องที่ประชุม"></div>' +
+        '<div class="col col-md-5"><input type="text" class="form-control form-control-sm meet-person-input" placeholder="รายชื่อผู้เข้าร่วม (คั่นด้วย ,)"></div>' +
+        '<div class="col-auto pt-1"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeMeetTopicRow(this)"><i class="bi bi-trash"></i></button></div>';
+      container.appendChild(div);
+      if (topic) div.querySelector('.meet-topic-input').value = topic;
+      if (person) div.querySelector('.meet-person-input').value = person;
+      renumberMeetTopicRows();
+    }
+    function removeMeetTopicRow(btn) {
+      const rows = document.querySelectorAll('#meetTopicRows .meet-topic-row');
+      if (rows.length <= 1) { return; }
+      btn.closest('.meet-topic-row').remove();
+      renumberMeetTopicRows();
+    }
+    function renumberMeetTopicRows() {
+      document.querySelectorAll('#meetTopicRows .meet-topic-row').forEach(function(row, i) {
+        row.querySelector('.meet-row-num').innerText = (i + 1);
+      });
+    }
+    function resetMeetTopicRows() {
+      document.getElementById('meetTopicRows').innerHTML = '';
+      addMeetTopicRow('', '');
+    }
+    function buildMeetTopicStrings() {
+      const rows = document.querySelectorAll('#meetTopicRows .meet-topic-row');
+      const topics = []; const personParts = [];
+      rows.forEach(function(row, i) {
+        const n = i + 1;
+        const topic = row.querySelector('.meet-topic-input').value.trim();
+        const personRaw = row.querySelector('.meet-person-input').value.trim();
+        if (topic) topics.push(n + '. ' + topic);
+        if (personRaw) {
+          personRaw.split(',').map(function(s) { return s.trim(); }).filter(Boolean).forEach(function(name) {
+            personParts.push('(' + n + ')' + name);
+          });
+        }
+      });
+      return { meetTopic: topics.join(' | '), meetPerson: personParts.join(',') };
+    }
+    function parseMeetTopicStrings(topicStr, personStr) {
+      document.getElementById('meetTopicRows').innerHTML = '';
+      topicStr = (topicStr || '').trim();
+      personStr = (personStr || '').trim();
+      if (!topicStr && !personStr) { addMeetTopicRow('', ''); return; }
+      var topicMatches = [];
+      if (topicStr) {
+        var parts = topicStr.split('|');
+        for (var i = 0; i < parts.length; i++) {
+          var seg = parts[i].trim();
+          var dotIdx = seg.indexOf('.');
+          if (dotIdx > -1) {
+            var numStr = seg.slice(0, dotIdx).trim();
+            var num = parseInt(numStr, 10);
+            var text = seg.slice(dotIdx + 1).trim();
+            if (!isNaN(num) && text) topicMatches.push({ num: num, text: text });
+          }
+        }
+      }
+      var personMap = {}; var anyTagged = false;
+      if (personStr) {
+        var items = personStr.split(',');
+        for (var j = 0; j < items.length; j++) {
+          var it = items[j].trim();
+          if (it.charAt(0) === '(') {
+            var close = it.indexOf(')');
+            if (close > -1) {
+              var n2 = parseInt(it.slice(1, close), 10);
+              var nm = it.slice(close + 1).trim();
+              if (!isNaN(n2)) {
+                anyTagged = true;
+                if (!personMap[n2]) personMap[n2] = [];
+                if (nm) personMap[n2].push(nm);
+              }
+            }
+          }
+        }
+      }
+      if (topicMatches.length === 0 && !anyTagged) { addMeetTopicRow(topicStr, personStr); return; }
+      var nums = {};
+      for (var k = 0; k < topicMatches.length; k++) nums[topicMatches[k].num] = true;
+      for (var key in personMap) nums[key] = true;
+      var sortedNums = Object.keys(nums).map(Number).sort(function(a, b) { return a - b; });
+      if (sortedNums.length === 0) { addMeetTopicRow(topicStr, personStr); return; }
+      for (var s = 0; s < sortedNums.length; s++) {
+        var num3 = sortedNums[s];
+        var tObj = null;
+        for (var t = 0; t < topicMatches.length; t++) { if (topicMatches[t].num === num3) { tObj = topicMatches[t]; break; } }
+        var persons = (personMap[num3] || []).join(', ');
+        addMeetTopicRow(tObj ? tObj.text : '', persons);
+      }
     }
     const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
     const KPI_FIELDS = [
@@ -662,6 +761,7 @@
       const __now = new Date();
       document.getElementById('f-date').value = __now.getFullYear() + '-' + String(__now.getMonth()+1).padStart(2,'0') + '-' + String(__now.getDate()).padStart(2,'0');
       document.getElementById('meetInfoBox').style.display = 'none';
+      resetMeetTopicRows();
       calculateLive(); 
       myModal.show(); 
     }
@@ -676,8 +776,7 @@
       document.getElementById('f-hdout').value = raw[17]; document.getElementById('f-eid').value = raw[18]; document.getElementById('f-icu').value = raw[19]; document.getElementById('f-hiv').value = raw[20];
       document.getElementById('f-rnmeet').value = raw[21]; document.getElementById('f-nameet').value = raw[22];
       document.getElementById('f-recorder').value = raw[61] || '';
-      document.getElementById('f-meettopic').value = raw[59] || '';
-      document.getElementById('f-meetperson').value = raw[60] || '';
+      parseMeetTopicStrings(raw[59] || '', raw[60] || '');
       toggleMeetBox();
       for(let i=0; i<36; i++) { document.getElementById('risk-'+i).value = raw[23+i] || 0; }
       calculateLive(); 
@@ -691,8 +790,9 @@
       for(let i=0; i<36; i++) { risks.push(document.getElementById('risk-'+i).value); }
       const rnMeetVal = Number(document.getElementById('f-rnmeet').value) || 0;
       const naMeetVal = Number(document.getElementById('f-nameet').value) || 0;
-      const meetTopicVal = document.getElementById('f-meettopic').value.trim();
-      const meetPersonVal = document.getElementById('f-meetperson').value.trim();
+      const __meetStrings = buildMeetTopicStrings();
+      const meetTopicVal = __meetStrings.meetTopic;
+      const meetPersonVal = __meetStrings.meetPerson;
       if ((rnMeetVal > 0 || naMeetVal > 0) && (!meetTopicVal || !meetPersonVal)) {
         return Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบ!', text: 'เนื่องจากมีการลงชั่วโมง RN/NA ประชุม กรุณาระบุหัวข้อการประชุม/อบรม และผู้เข้าประชุม/อบรมด้วยครับ', confirmButtonColor: '#047857' });
       }
