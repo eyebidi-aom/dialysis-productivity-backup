@@ -168,7 +168,7 @@
           </div>
         </div>
 
-        <!-- กล่อง AI วิเคราะห์ (แก้ไขข้อความแล้ว) -->
+        <!-- กล่อง AI วิเคราะห์ -->
         <div class="content-box ai-box p-4 text-center">
           <h4 class="fw-bold text-mint-dark mb-3"><i class="bi bi-robot fs-2"></i> วิเคราะห์ภาพรวมองค์กร</h4>
           <button class="btn btn-dark rounded-pill px-5 py-2 fw-bold shadow" onclick="runAIAnalysis()"><i class="bi bi-magic"></i> เริ่มวิเคราะห์ข้อมูล</button>
@@ -257,6 +257,7 @@
       </div>
     </div>
   </div>
+
   <div class="modal fade" id="kpiModal" tabindex="-1">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
       <div class="modal-content rounded-4 border-0 shadow">
@@ -278,7 +279,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <script>
 
-  // URL ของ Apps Script Web App (ใช้ได้ทั้งตอนรันบน Apps Script โดยตรง และตอนรันบน GitHub Pages)
+  // URL ของ Apps Script Web App
   const API_URL = 'https://script.google.com/macros/s/AKfycbwe1hp6YKK7kRZHoty4AfoTmfikephVsr6JjCNVaMxAvCXynC-F2tYIq-YG0-eyJtkjhA/exec';
 
   function callServer(action, args) {
@@ -294,590 +295,621 @@
       });
   }
 
-  // ป้องกันการกรอกตัวเลขติดลบในทุกช่องกรอกตัวเลข (รวมถึงช่องความเสี่ยงที่สร้างภายหลัง)
+  // ป้องกันการกรอกตัวเลขติดลบในทุกช่องกรอกตัวเลข
   document.addEventListener('input', function (e) {
     if (e.target && e.target.matches && e.target.matches('input[type="number"]')) {
       if (e.target.value !== '' && Number(e.target.value) < 0) {
-      e.target.value = 0; if (typeof calculateLive === 'function') { calculateLive(); }
+        e.target.value = 0; if (typeof calculateLive === 'function') { calculateLive(); }
       }
     }
     if (e.target && e.target.matches && e.target.matches('.meet-input')) {
       toggleMeetBox();
     }
   });
+
   const riskNames = ["ข้อร้องเรียน", "ตัวกรองมีสารตกค้าง", "การใช้ตัวกรองสลับคน", "ให้ยา/สารน้ำผิด", "คิดค่าใช้จ่ายผิด", "บาดเจ็บจากการแทงเส้น", "แพ้เลือด", "แพ้ยา/สารน้ำ", "A-V เลื่อนหลุด", "Blood line หลุด", "Fistular aneurysm แตก", "เครื่องไตเทียมไม่พร้อม", "ระบบน้ำไม่พร้อม", "RO ปนเปื้อน", "RO แตกรั่ว", "Air embolism", "จนท.บาดเจ็บ", "จนท.ถูกเข็มตำ", "Sudden death", "Chest pain", "Cardiac arrhythmia", "Seizures", "Acute hemolysis", "Acute allergic", "Hypoxia", "Hypotension", "Hypertension", "ปวดศรีษะ", "Nausea vomiting", "Muscle cramp", "Chill", "Fever", "Disequilibrium", "First Use Syndrome", "Dialyzer leak", "Dialyzer clot"];
     
-    const rc = document.getElementById('riskContainer');
-    riskNames.forEach((name, idx) => { rc.innerHTML += `<div class="col-12 col-md-3"><label class="text-secondary fw-bold" style="font-size:0.75rem;">${name}</label><input type="number" class="form-control form-control-sm f-risk border-danger border-opacity-25" id="risk-${idx}" value="0"></div>`; });
+  const rc = document.getElementById('riskContainer');
+  riskNames.forEach((name, idx) => { rc.innerHTML += `<div class="col-12 col-md-3"><label class="text-secondary fw-bold" style="font-size:0.75rem;">${name}</label><input type="number" class="form-control form-control-sm f-risk border-danger border-opacity-25" id="risk-${idx}" value="0"></div>`; });
 
-    let rawDataStore = {};
-    let myCharts = {};
-    let myModal;
-    let currentTotals = {}; 
-    const THAI_HOLIDAYS = {
-      '2025-01-01': 'วันขึ้นปีใหม่',
-      '2025-02-12': 'วันมาฆบูชา',
-      '2025-04-06': 'วันจักรี',
-      '2025-04-07': 'ชดเชยวันจักรี',
-      '2025-04-13': 'วันสงกรานต์',
-      '2025-04-14': 'วันสงกรานต์',
-      '2025-04-15': 'วันสงกรานต์',
-      '2025-04-16': 'ชดเชยวันสงกรานต์',
-      '2025-05-01': 'วันแรงงานแห่งชาติ',
-      '2025-05-04': 'วันฉัตรมงคล',
-      '2025-05-05': 'ชดเชยวันฉัตรมงคล',
-      '2025-05-11': 'วันวิสาขบูชา',
-      '2025-05-12': 'ชดเชยวันวิสาขบูชา',
-      '2025-06-02': 'วันหยุดพิเศษ (กรณีพิเศษ)',
-      '2025-06-03': 'วันเฉลิมพระชนมพรรษาสมเด็จพระราชินี',
-      '2025-07-10': 'วันอาสาฬหบูชา',
-      '2025-07-11': 'วันเข้าพรรษา',
-      '2025-07-28': 'วันเฉลิมพระชนมพรรษา ร.10',
-      '2025-08-11': 'วันหยุดพิเศษ (กรณีพิเศษ)',
-      '2025-08-12': 'วันแม่แห่งชาติ',
-      '2025-10-13': 'วันคล้ายวันสวรรคต ร.9',
-      '2025-10-23': 'วันปิยมหาราช',
-      '2025-12-05': 'วันพ่อแห่งชาติ',
-      '2025-12-10': 'วันรัฐธรรมนูญ',
-      '2025-12-31': 'วันสิ้นปี',
-      '2026-01-01': 'วันขึ้นปีใหม่',
-      '2026-01-02': 'วันหยุดพิเศษ (กรณีพิเศษ)',
-      '2026-03-03': 'วันมาฆบูชา',
-      '2026-04-06': 'วันจักรี',
-      '2026-04-13': 'วันสงกรานต์',
-      '2026-04-14': 'วันสงกรานต์',
-      '2026-04-15': 'วันสงกรานต์',
-      '2026-05-01': 'วันแรงงานแห่งชาติ',
-      '2026-05-04': 'วันฉัตรมงคล',
-      '2026-05-31': 'วันวิสาขบูชา',
-      '2026-06-01': 'ชดเชยวันวิสาขบูชา',
-      '2026-06-03': 'วันเฉลิมพระชนมพรรษาสมเด็จพระราชินี',
-      '2026-07-28': 'วันเฉลิมพระชนมพรรษา ร.10',
-      '2026-07-29': 'วันอาสาฬหบูชา',
-      '2026-07-30': 'วันเข้าพรรษา',
-      '2026-08-12': 'วันแม่แห่งชาติ',
-      '2026-10-13': 'วันคล้ายวันสวรรคต ร.9',
-      '2026-10-23': 'วันปิยมหาราช',
-      '2026-12-07': 'ชดเชยวันพ่อแห่งชาติ',
-      '2026-12-10': 'วันรัฐธรรมนูญ',
-      '2026-12-31': 'วันสิ้นปี'
-    };
-    function getHolidaysInMonth(yearCE, monthIdx) {
-      let result = [];
-      for (const dateStr in THAI_HOLIDAYS) {
-        const d = new Date(dateStr + 'T00:00:00');
-        if (d.getFullYear() === yearCE && d.getMonth() === monthIdx) {
-          result.push({ date: dateStr, name: THAI_HOLIDAYS[dateStr], day: d.getDate() });
+  let rawDataStore = {};
+  let myCharts = {};
+  let myModal;
+  let currentTotals = {}; 
+
+  const THAI_HOLIDAYS = {
+    '2025-01-01': 'วันขึ้นปีใหม่',
+    '2025-02-12': 'วันมาฆบูชา',
+    '2025-04-06': 'วันจักรี',
+    '2025-04-07': 'ชดเชยวันจักรี',
+    '2025-04-13': 'วันสงกรานต์',
+    '2025-04-14': 'วันสงกรานต์',
+    '2025-04-15': 'วันสงกรานต์',
+    '2025-04-16': 'ชดเชยวันสงกรานต์',
+    '2025-05-01': 'วันแรงงานแห่งชาติ',
+    '2025-05-04': 'วันฉัตรมงคล',
+    '2025-05-05': 'ชดเชยวันฉัตรมงคล',
+    '2025-05-11': 'วันวิสาขบูชา',
+    '2025-05-12': 'ชดเชยวันวิสาขบูชา',
+    '2025-06-02': 'วันหยุดพิเศษ (กรณีพิเศษ)',
+    '2025-06-03': 'วันเฉลิมพระชนมพรรษาสมเด็จพระราชินี',
+    '2025-07-10': 'วันอาสาฬหบูชา',
+    '2025-07-11': 'วันเข้าพรรษา',
+    '2025-07-28': 'วันเฉลิมพระชนมพรรษา ร.10',
+    '2025-08-11': 'วันหยุดพิเศษ (กรณีพิเศษ)',
+    '2025-08-12': 'วันแม่แห่งชาติ',
+    '2025-10-13': 'วันคล้ายวันสวรรคต ร.9',
+    '2025-10-23': 'วันปิยมหาราช',
+    '2025-12-05': 'วันพ่อแห่งชาติ',
+    '2025-12-10': 'วันรัฐธรรมนูญ',
+    '2025-12-31': 'วันสิ้นปี',
+    '2026-01-01': 'วันขึ้นปีใหม่',
+    '2026-01-02': 'วันหยุดพิเศษ (กรณีพิเศษ)',
+    '2026-03-03': 'วันมาฆบูชา',
+    '2026-04-06': 'วันจักรี',
+    '2026-04-13': 'วันสงกรานต์',
+    '2026-04-14': 'วันสงกรานต์',
+    '2026-04-15': 'วันสงกรานต์',
+    '2026-05-01': 'วันแรงงานแห่งชาติ',
+    '2026-05-04': 'วันฉัตรมงคล',
+    '2026-05-31': 'วันวิสาขบูชา',
+    '2026-06-01': 'ชดเชยวันวิสาขบูชา',
+    '2026-06-03': 'วันเฉลิมพระชนมพรรษาสมเด็จพระราชินี',
+    '2026-07-28': 'วันเฉลิมพระชนมพรรษา ร.10',
+    '2026-07-29': 'วันอาสาฬหบูชา',
+    '2026-07-30': 'วันเข้าพรรษา',
+    '2026-08-12': 'วันแม่แห่งชาติ',
+    '2026-10-13': 'วันคล้ายวันสวรรคต ร.9',
+    '2026-10-23': 'วันปิยมหาราช',
+    '2026-12-07': 'ชดเชยวันพ่อแห่งชาติ',
+    '2026-12-10': 'วันรัฐธรรมนูญ',
+    '2026-12-31': 'วันสิ้นปี'
+  };
+
+  function getHolidaysInMonth(yearCE, monthIdx) {
+    let result = [];
+    for (const dateStr in THAI_HOLIDAYS) {
+      const d = new Date(dateStr + 'T00:00:00');
+      if (d.getFullYear() === yearCE && d.getMonth() === monthIdx) {
+        result.push({ date: dateStr, name: THAI_HOLIDAYS[dateStr], day: d.getDate() });
+      }
+    }
+    result.sort((a, b) => a.day - b.day);
+    return result;
+  }
+
+  function toggleMeetBox() {
+    const rn = Number(document.getElementById('f-rnmeet').value) || 0;
+    const na = Number(document.getElementById('f-nameet').value) || 0;
+    document.getElementById('meetInfoBox').style.display = (rn > 0 || na > 0) ? 'flex' : 'none';
+    if ((rn > 0 || na > 0) && document.querySelectorAll('#meetTopicRows .meet-topic-row').length === 0) { addMeetTopicRow('', ''); }
+  }
+
+  function addMeetTopicRow(topic, person) {
+    const container = document.getElementById('meetTopicRows');
+    const div = document.createElement('div');
+    div.className = 'row g-2 mb-2 meet-topic-row align-items-start';
+    div.innerHTML = '<div class="col-auto pt-2"><span class="badge bg-secondary meet-row-num"></span></div>' +
+      '<div class="col-12 col-md-5"><input type="text" class="form-control form-control-sm meet-topic-input" placeholder="หัวข้อ/เรื่องที่ประชุม"></div>' +
+      '<div class="col col-md-5"><input type="text" class="form-control form-control-sm meet-person-input" placeholder="รายชื่อผู้เข้าร่วม (คั่นด้วย ,)"></div>' +
+      '<div class="col-auto pt-1"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeMeetTopicRow(this)"><i class="bi bi-trash"></i></button></div>';
+    container.appendChild(div);
+    if (topic) div.querySelector('.meet-topic-input').value = topic;
+    if (person) div.querySelector('.meet-person-input').value = person;
+    renumberMeetTopicRows();
+  }
+
+  function removeMeetTopicRow(btn) {
+    const rows = document.querySelectorAll('#meetTopicRows .meet-topic-row');
+    if (rows.length <= 1) { return; }
+    btn.closest('.meet-topic-row').remove();
+    renumberMeetTopicRows();
+  }
+
+  function renumberMeetTopicRows() {
+    document.querySelectorAll('#meetTopicRows .meet-topic-row').forEach(function(row, i) {
+      row.querySelector('.meet-row-num').innerText = (i + 1);
+    });
+  }
+
+  function resetMeetTopicRows() {
+    document.getElementById('meetTopicRows').innerHTML = '';
+    addMeetTopicRow('', '');
+  }
+
+  function buildMeetTopicStrings() {
+    const rows = document.querySelectorAll('#meetTopicRows .meet-topic-row');
+    const topics = []; const personParts = [];
+    rows.forEach(function(row, i) {
+      const n = i + 1;
+      const topic = row.querySelector('.meet-topic-input').value.trim();
+      const personRaw = row.querySelector('.meet-person-input').value.trim();
+      if (topic) topics.push(n + '. ' + topic);
+      if (personRaw) {
+        personRaw.split(',').map(function(s) { return s.trim(); }).filter(Boolean).forEach(function(name) {
+          personParts.push('(' + n + ')' + name);
+        });
+      }
+    });
+    return { meetTopic: topics.join(' | '), meetPerson: personParts.join(',') };
+  }
+
+  function parseMeetTopicStrings(topicStr, personStr) {
+    document.getElementById('meetTopicRows').innerHTML = '';
+    topicStr = (topicStr || '').trim();
+    personStr = (personStr || '').trim();
+    if (!topicStr && !personStr) { addMeetTopicRow('', ''); return; }
+    var topicMatches = [];
+    if (topicStr) {
+      var parts = topicStr.split('|');
+      for (var i = 0; i < parts.length; i++) {
+        var seg = parts[i].trim();
+        var dotIdx = seg.indexOf('.');
+        if (dotIdx > -1) {
+          var numStr = seg.slice(0, dotIdx).trim();
+          var num = parseInt(numStr, 10);
+          var text = seg.slice(dotIdx + 1).trim();
+          if (!isNaN(num) && text) topicMatches.push({ num: num, text: text });
         }
       }
-      result.sort((a, b) => a.day - b.day);
-      return result;
     }
-    function toggleMeetBox() {
-      const rn = Number(document.getElementById('f-rnmeet').value) || 0;
-      const na = Number(document.getElementById('f-nameet').value) || 0;
-      document.getElementById('meetInfoBox').style.display = (rn > 0 || na > 0) ? 'flex' : 'none';
-      if ((rn > 0 || na > 0) && document.querySelectorAll('#meetTopicRows .meet-topic-row').length === 0) { addMeetTopicRow('', ''); }
-    }
-    function addMeetTopicRow(topic, person) {
-      const container = document.getElementById('meetTopicRows');
-      const div = document.createElement('div');
-      div.className = 'row g-2 mb-2 meet-topic-row align-items-start';
-      div.innerHTML = '<div class="col-auto pt-2"><span class="badge bg-secondary meet-row-num"></span></div>' +
-        '<div class="col-12 col-md-5"><input type="text" class="form-control form-control-sm meet-topic-input" placeholder="หัวข้อ/เรื่องที่ประชุม"></div>' +
-        '<div class="col col-md-5"><input type="text" class="form-control form-control-sm meet-person-input" placeholder="รายชื่อผู้เข้าร่วม (คั่นด้วย ,)"></div>' +
-        '<div class="col-auto pt-1"><button type="button" class="btn btn-sm btn-outline-danger" onclick="removeMeetTopicRow(this)"><i class="bi bi-trash"></i></button></div>';
-      container.appendChild(div);
-      if (topic) div.querySelector('.meet-topic-input').value = topic;
-      if (person) div.querySelector('.meet-person-input').value = person;
-      renumberMeetTopicRows();
-    }
-    function removeMeetTopicRow(btn) {
-      const rows = document.querySelectorAll('#meetTopicRows .meet-topic-row');
-      if (rows.length <= 1) { return; }
-      btn.closest('.meet-topic-row').remove();
-      renumberMeetTopicRows();
-    }
-    function renumberMeetTopicRows() {
-      document.querySelectorAll('#meetTopicRows .meet-topic-row').forEach(function(row, i) {
-        row.querySelector('.meet-row-num').innerText = (i + 1);
-      });
-    }
-    function resetMeetTopicRows() {
-      document.getElementById('meetTopicRows').innerHTML = '';
-      addMeetTopicRow('', '');
-    }
-    function buildMeetTopicStrings() {
-      const rows = document.querySelectorAll('#meetTopicRows .meet-topic-row');
-      const topics = []; const personParts = [];
-      rows.forEach(function(row, i) {
-        const n = i + 1;
-        const topic = row.querySelector('.meet-topic-input').value.trim();
-        const personRaw = row.querySelector('.meet-person-input').value.trim();
-        if (topic) topics.push(n + '. ' + topic);
-        if (personRaw) {
-          personRaw.split(',').map(function(s) { return s.trim(); }).filter(Boolean).forEach(function(name) {
-            personParts.push('(' + n + ')' + name);
-          });
-        }
-      });
-      return { meetTopic: topics.join(' | '), meetPerson: personParts.join(',') };
-    }
-    function parseMeetTopicStrings(topicStr, personStr) {
-      document.getElementById('meetTopicRows').innerHTML = '';
-      topicStr = (topicStr || '').trim();
-      personStr = (personStr || '').trim();
-      if (!topicStr && !personStr) { addMeetTopicRow('', ''); return; }
-      var topicMatches = [];
-      if (topicStr) {
-        var parts = topicStr.split('|');
-        for (var i = 0; i < parts.length; i++) {
-          var seg = parts[i].trim();
-          var dotIdx = seg.indexOf('.');
-          if (dotIdx > -1) {
-            var numStr = seg.slice(0, dotIdx).trim();
-            var num = parseInt(numStr, 10);
-            var text = seg.slice(dotIdx + 1).trim();
-            if (!isNaN(num) && text) topicMatches.push({ num: num, text: text });
-          }
-        }
-      }
-      var personMap = {}; var anyTagged = false;
-      if (personStr) {
-        var items = personStr.split(',');
-        for (var j = 0; j < items.length; j++) {
-          var it = items[j].trim();
-          if (it.charAt(0) === '(') {
-            var close = it.indexOf(')');
-            if (close > -1) {
-              var n2 = parseInt(it.slice(1, close), 10);
-              var nm = it.slice(close + 1).trim();
-              if (!isNaN(n2)) {
-                anyTagged = true;
-                if (!personMap[n2]) personMap[n2] = [];
-                if (nm) personMap[n2].push(nm);
-              }
+    var personMap = {}; var anyTagged = false;
+    if (personStr) {
+      var items = personStr.split(',');
+      for (var j = 0; j < items.length; j++) {
+        var it = items[j].trim();
+        if (it.charAt(0) === '(') {
+          var close = it.indexOf(')');
+          if (close > -1) {
+            var n2 = parseInt(it.slice(1, close), 10);
+            var nm = it.slice(close + 1).trim();
+            if (!isNaN(n2)) {
+              anyTagged = true;
+              if (!personMap[n2]) personMap[n2] = [];
+              if (nm) personMap[n2].push(nm);
             }
           }
         }
       }
-      if (topicMatches.length === 0 && !anyTagged) { addMeetTopicRow(topicStr, personStr); return; }
-      var nums = {};
-      for (var k = 0; k < topicMatches.length; k++) nums[topicMatches[k].num] = true;
-      for (var key in personMap) nums[key] = true;
-      var sortedNums = Object.keys(nums).map(Number).sort(function(a, b) { return a - b; });
-      if (sortedNums.length === 0) { addMeetTopicRow(topicStr, personStr); return; }
-      for (var s = 0; s < sortedNums.length; s++) {
-        var num3 = sortedNums[s];
-        var tObj = null;
-        for (var t = 0; t < topicMatches.length; t++) { if (topicMatches[t].num === num3) { tObj = topicMatches[t]; break; } }
-        var persons = (personMap[num3] || []).join(', ');
-        addMeetTopicRow(tObj ? tObj.text : '', persons);
+    }
+    if (topicMatches.length === 0 && !anyTagged) { addMeetTopicRow(topicStr, personStr); return; }
+    var nums = {};
+    for (var k = 0; k < topicMatches.length; k++) nums[topicMatches[k].num] = true;
+    for (var key in personMap) nums[key] = true;
+    var sortedNums = Object.keys(nums).map(Number).sort(function(a, b) { return a - b; });
+    if (sortedNums.length === 0) { addMeetTopicRow(topicStr, personStr); return; }
+    for (var s = 0; s < sortedNums.length; s++) {
+      var num3 = sortedNums[s];
+      var tObj = null;
+      for (var t = 0; t < topicMatches.length; t++) { if (topicMatches[t].num === num3) { tObj = topicMatches[t]; break; } }
+      var persons = (personMap[num3] || []).join(', ');
+      addMeetTopicRow(tObj ? tObj.text : '', persons);
+    }
+  }
+
+  const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
+  const KPI_FIELDS = [
+    {id:"fall", label:"AU=Fall"},
+    {id:"medA", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ A"},
+    {id:"medB", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ B"},
+    {id:"medC", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ C"},
+    {id:"medD", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ D"},
+    {id:"medE", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ E"},
+    {id:"medF", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ F"},
+    {id:"medG", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ G"},
+    {id:"medH", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ H"},
+    {id:"medI", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ I"},
+    {id:"visit2wk", label:"อายุรแพทย์โรคไตตรวจเยี่ยมทุก 2 wk"},
+    {id:"esrdNew", label:"HD ESRD รายใหม่"},
+    {id:"labFirst", label:"การส่งตรวจ lab CBC,BUN,Cr,E-lyte,Ca,P,Alb แรกรับ(ราย)"},
+    {id:"ktvUrr", label:"การส่งตรวจ Kt/V URR แรกเข้า"},
+    {id:"hbsag", label:"การส่งตรวจ HBsAg, HbsAb, Anti-HCV แรกเข้า"},
+    {id:"ekg", label:"การส่งตรวจ EKG แรกเข้า"},
+    {id:"ironStudy", label:"การส่งตรวจ Iron study แรกเข้า"},
+    {id:"ipth", label:"การส่งตรวจ iPTH แรกเข้า"},
+    {id:"catheter90", label:"ผู้ป่วยที่ได้รับการฟอกเลือดผ่านทาง Temporary venous catheter นานกว่า 90 วัน"},
+    {id:"infectAVF", label:"อัตราการติดเชื้อ AVF"},
+    {id:"infectAVG", label:"อัตราการติดเชื้อ AVG"},
+    {id:"infectPerm", label:"อัตราการติดเชื้อ Perm catheter"},
+    {id:"infectDLC", label:"อัตราการติดเชื้อ DLC"},
+    {id:"sepsis", label:"อัตรา Sepsis"},
+    {id:"mortality", label:"อัตราการตาย"},
+    {id:"akiRecovery", label:"AKI recovery"},
+    {id:"nurseNote", label:"อัตราความสมบูรณ์ Nurse note"},
+    {id:"satisfaction", label:"ร้อยละความพึงพอใจของผู้รับบริการ"},
+    {id:"compliments", label:"คำชมเชยจากผู้รับบริการ"},
+    {id:"research", label:"วิจัย"},
+    {id:"publication", label:"ตีพิมพ์วารสารวิชาการ"},
+    {id:"presentation", label:"นำเสนอผลงานวิชาการ หน่วยงานภายนอก"},
+    {id:"wi", label:"WI"},
+    {id:"cqi", label:"CQI/นวัตกรรม"},
+    {id:"hdNurse", label:"พยาบาลไตเทียม"},
+    {id:"staffTotal", label:"อัตรากำลัง"},
+    {id:"assistant", label:"ผู้ช่วยเหลือ"},
+    {id:"hdMachine", label:"เครื่องไตเทียม"},
+    {id:"crrtMachine", label:"CRRT"},
+    {id:"mobileRO", label:"ระบบน้ำ RO เคลื่อนที่"}
+  ];
+
+  function buildKpiFields() {
+    const c = document.getElementById("kpiFieldsContainer");
+    let html = "";
+    KPI_FIELDS.forEach(function(f) {
+      html += "<div class=\"col-12 col-md-4\"><label class=\"form-label text-secondary\" style=\"font-size:0.8rem;\">" + f.label + "</label><input type=\"number\" step=\"0.01\" class=\"form-control kpi-input\" id=\"kpi-" + f.id + "\" value=\"0\"></div>";
+    });
+    c.innerHTML = html;
+  }
+
+  function openKpiModal() {
+    const mVal = document.getElementById("filterMonth").value;
+    const yVal = document.getElementById("filterYear").value;
+    if (!mVal || mVal === "All" || !yVal || yVal === "All") {
+      return Swal.fire({ icon: "warning", title: "กรุณาเลือกเดือนและปีก่อน", text: "ต้องเลือกเดือน/ปีที่ต้องการส่งข้อมูลให้ชัดเจน (ไม่ใช่ทั้งหมด) ก่อนกดส่งข้อมูลรายเดือน", confirmButtonColor: "#047857" });
+    }
+    buildKpiFields();
+    const monthName = THAI_MONTHS[Number(mVal) - 1];
+    document.getElementById("kpi-monthlabel").innerText = monthName + " " + yVal;
+    new bootstrap.Modal(document.getElementById("kpiModal")).show();
+  }
+
+  function reviewKpiData() {
+    let medTotal = 0;
+    const medIds = ["medA","medB","medC","medD","medE","medF","medG","medH","medI"];
+    medIds.forEach(function(id) { medTotal += Number(document.getElementById("kpi-" + id).value) || 0; });
+    let summaryHtml = '<div style="text-align:left; font-size:0.82rem; max-height:400px; overflow-y:auto;">';
+    KPI_FIELDS.forEach(function(f) {
+      const val = document.getElementById("kpi-" + f.id).value || 0;
+      summaryHtml += '<div class="d-flex justify-content-between border-bottom py-1"><span>' + f.label + '</span><span class="fw-bold text-mint-dark ms-2">' + val + '</span></div>';
+    });
+    summaryHtml += '<div class="d-flex justify-content-between py-2"><span class="fw-bold">รวม Medication Error ทั้งหมด</span><span class="fw-bold text-danger">' + medTotal + '</span></div>';
+    summaryHtml += "</div>";
+    Swal.fire({
+      title: "ยืนยันข้อมูล KPI เดือน " + document.getElementById("kpi-monthlabel").innerText,
+      html: summaryHtml,
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "ยืนยันส่งข้อมูล",
+      cancelButtonText: "กลับไปแก้ไข",
+      confirmButtonColor: "#047857",
+      width: 600
+    }).then(function(result) {
+      if (result.isConfirmed) submitKpiData(medTotal);
+    });
+  }
+
+  function submitKpiData(medTotal) {
+    const mVal = document.getElementById("filterMonth").value;
+    const yVal = document.getElementById("filterYear").value;
+    const payload = {
+      month: THAI_MONTHS[Number(mVal) - 1],
+      year: yVal,
+      // ดึงอัตโนมัติจากแดชบอร์ด (คอลัมน์ C - AT)
+      prod: currentTotals.AvgProd || 0,
+      visit: currentTotals.PatientDay || 0,
+      aki: currentTotals.AHD || 0,
+      chronic: currentTotals.CHD || 0,
+      hdOut: currentTotals.HDOut || 0,
+      icu: currentTotals.ICU || 0,
+      hiv: currentTotals.HIV || 0,
+      eid: currentTotals.EID || 0,
+      risks: currentTotals.risks || Array(36).fill(0),
+      medTotal: medTotal
+    };
+    KPI_FIELDS.forEach(function(f) {
+      payload[f.id] = Number(document.getElementById("kpi-" + f.id).value) || 0;
+    });
+    Swal.fire({ title: "กำลังส่งข้อมูล...", allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
+    callServer('saveMonthlyKPI', [payload]).then(function(res) {
+      if (res.status === "success") {
+        bootstrap.Modal.getInstance(document.getElementById("kpiModal")).hide();
+        Swal.fire({ icon: "success", title: "สำเร็จ!", text: res.message, confirmButtonColor: "#047857" });
+      } else if (res.status === "duplicate") {
+        Swal.fire({ icon: "warning", title: "มีข้อมูลอยู่แล้ว", text: res.message, confirmButtonColor: "#047857" });
+      } else {
+        Swal.fire({ icon: "error", title: "เกิดข้อผิดพลาด", text: res.message, confirmButtonColor: "#047857" });
       }
-    }
-    const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
-    const KPI_FIELDS = [
-      {id:"fall", label:"AU=Fall"},
-      {id:"medA", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ A"},
-      {id:"medB", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ B"},
-      {id:"medC", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ C"},
-      {id:"medD", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ D"},
-      {id:"medE", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ E"},
-      {id:"medF", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ F"},
-      {id:"medG", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ G"},
-      {id:"medH", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ H"},
-      {id:"medI", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ I"},
-      {id:"visit2wk", label:"อายุรแพทย์โรคไตตรวจเยี่ยมทุก 2 wk"},
-      {id:"esrdNew", label:"HD ESRD รายใหม่"},
-      {id:"labFirst", label:"การส่งตรวจ lab CBC,BUN,Cr,E-lyte,Ca,P,Alb แรกรับ(ราย)"},
-      {id:"ktvUrr", label:"การส่งตรวจ Kt/V URR แรกเข้า"},
-      {id:"hbsag", label:"การส่งตรวจ HBsAg, HbsAb, Anti-HCV แรกเข้า"},
-      {id:"ekg", label:"การส่งตรวจ EKG แรกเข้า"},
-      {id:"ironStudy", label:"การส่งตรวจ Iron study แรกเข้า"},
-      {id:"ipth", label:"การส่งตรวจ iPTH แรกเข้า"},
-      {id:"catheter90", label:"ผู้ป่วยที่ได้รับการฟอกเลือดผ่านทาง Temporary venous catheter นานกว่า 90 วัน"},
-      {id:"infectAVF", label:"อัตราการติดเชื้อ AVF"},
-      {id:"infectAVG", label:"อัตราการติดเชื้อ AVG"},
-      {id:"infectPerm", label:"อัตราการติดเชื้อ Perm catheter"},
-      {id:"infectDLC", label:"อัตราการติดเชื้อ DLC"},
-      {id:"sepsis", label:"อัตรา Sepsis"},
-      {id:"mortality", label:"อัตราการตาย"},
-      {id:"akiRecovery", label:"AKI recovery"},
-      {id:"nurseNote", label:"อัตราความสมบูรณ์ Nurse note"},
-      {id:"satisfaction", label:"ร้อยละความพึงพอใจของผู้รับบริการ"},
-      {id:"compliments", label:"คำชมเชยจากผู้รับบริการ"},
-      {id:"research", label:"วิจัย"},
-      {id:"publication", label:"ตีพิมพ์วารสารวิชาการ"},
-      {id:"presentation", label:"นำเสนอผลงานวิชาการ หน่วยงานภายนอก"},
-      {id:"wi", label:"WI"},
-      {id:"cqi", label:"CQI/นวัตกรรม"}
-    ];
+    }).catch(function(err) {
+      Swal.fire({ icon: "error", title: "เกิดข้อผิดพลาด", text: err.message, confirmButtonColor: "#047857" });
+    });
+  }
 
-    function buildKpiFields() {
-      const c = document.getElementById("kpiFieldsContainer");
-      let html = "";
-      KPI_FIELDS.forEach(function(f) {
-        html += "<div class=\"col-12 col-md-4\"><label class=\"form-label text-secondary\" style=\"font-size:0.8rem;\">" + f.label + "</label><input type=\"number\" step=\"0.01\" class=\"form-control kpi-input\" id=\"kpi-" + f.id + "\" value=\"0\"></div>";
-      });
-      c.innerHTML = html;
-    }
+  window.onload = () => { 
+    myModal = new bootstrap.Modal(document.getElementById('recordModal'));
+    loadData(true); 
+  };
 
-    function openKpiModal() {
-      const mVal = document.getElementById("filterMonth").value;
-      const yVal = document.getElementById("filterYear").value;
-      if (!mVal || mVal === "All" || !yVal || yVal === "All") {
-        return Swal.fire({ icon: "warning", title: "กรุณาเลือกเดือนและปีก่อน", text: "ต้องเลือกเดือน/ปีที่ต้องการส่งข้อมูลให้ชัดเจน (ไม่ใช่ทั้งหมด) ก่อนกดส่งข้อมูลรายเดือน", confirmButtonColor: "#047857" });
+  function loadData(isInitial = false) {
+    document.getElementById('loader').style.display = 'block';
+    document.getElementById('pills-tabContent').style.display = 'none';
+    document.getElementById('aiResultContainer').style.display = 'none'; 
+    let m = isInitial ? "" : document.getElementById('filterMonth').value;
+    let y = isInitial ? "" : document.getElementById('filterYear').value;
+    let type = document.getElementById('filterYearType').value;
+    callServer('getData', [m, y, type]).then(updateUI).catch(function (err) { document.getElementById('loader').style.display = 'none'; Swal.fire('Error', err.message, 'error'); });
+  }
+
+  function updateUI(res) {
+    if (res.status === 'error') { Swal.fire('Error', res.message, 'error'); return; }
+    document.getElementById('filterMonth').value = res.currentFilter.month;
+    document.getElementById('filterYear').value = res.currentFilter.year;
+
+    const t = res.totals;
+    currentTotals = t; 
+    
+    document.getElementById('c-staffday').innerText = t.AvgStaffDay;
+    document.getElementById('c-ptday').innerText = t.AvgPatientDay;
+    document.getElementById('c-totalpt').innerText = t.PatientDay; 
+    document.getElementById('c-nhppd').innerText = t.AvgNHPPD;
+    document.getElementById('c-prod').innerText = t.AvgProd + '%';
+    
+    document.getElementById('c-hn').innerText = t.HN; document.getElementById('c-rn').innerText = t.RN;
+    document.getElementById('c-pn').innerText = t.PN; document.getElementById('c-na').innerText = t.NA;
+    document.getElementById('c-rnmeet').innerText = t.rnMeet; document.getElementById('c-nameet').innerText = t.naMeet;
+    
+    document.getElementById('c-ahd').innerText = t.AHD; document.getElementById('c-chd').innerText = t.CHD;
+    document.getElementById('c-rrt').innerText = t.RRT; document.getElementById('c-or').innerText = t.OR;
+    document.getElementById('c-dlc').innerText = t.DLC; document.getElementById('c-kbx').innerText = t.KBx;
+    document.getElementById('c-cons').innerText = t.Cons; document.getElementById('c-wound').innerText = t.wound;
+    document.getElementById('c-hdout').innerText = t.HDOut; document.getElementById('c-eid').innerText = t.EID;
+    document.getElementById('c-icu').innerText = t.ICU; document.getElementById('c-hiv').innerText = t.HIV;
+    let holidayEl = document.getElementById('holidayList');
+    let workdayBox = document.getElementById('workdayInfoBox');
+    if (res.currentFilter.month !== 'All' && res.currentFilter.year !== 'All') {
+      const yearCE = Number(res.currentFilter.year) - 543;
+      const monthIdx = Number(res.currentFilter.month) - 1;
+      const daysInMonth = new Date(yearCE, monthIdx + 1, 0).getDate();
+      const holidaysThisMonth = getHolidaysInMonth(yearCE, monthIdx);
+      const holidayDateSet = new Set(holidaysThisMonth.map(function(h) { return h.date; }));
+      let workDays = 0;
+      for (let i = 1; i <= daysInMonth; i++) {
+        const dow = new Date(yearCE, monthIdx, i).getDay();
+        const dStr = yearCE + '-' + String(monthIdx + 1).padStart(2, '0') + '-' + String(i).padStart(2, '0');
+        if (dow !== 0 && dow !== 6 && !holidayDateSet.has(dStr)) workDays++;
       }
-      buildKpiFields();
-      const monthName = THAI_MONTHS[Number(mVal) - 1];
-      document.getElementById("kpi-monthlabel").innerText = monthName + " " + yVal;
-      new bootstrap.Modal(document.getElementById("kpiModal")).show();
+      document.getElementById('workdayCount').innerText = workDays;
+      document.getElementById('workdayEntered').innerText = t.daysCount;
+      let holidayHtml = '';
+      if (holidaysThisMonth.length > 0) {
+        holidayHtml = holidaysThisMonth.map(function(h) { return '<span class="holiday-tag"><i class="bi bi-calendar-x-fill"></i> ' + h.day + ' - ' + h.name + '</span>'; }).join('');
+      }
+      holidayEl.innerHTML = holidayHtml;
+      workdayBox.style.display = 'block';
+    } else {
+      workdayBox.style.display = 'none';
     }
 
-    function reviewKpiData() {
-      let medTotal = 0;
-      const medIds = ["medA","medB","medC","medD","medE","medF","medG","medH","medI"];
-      medIds.forEach(function(id) { medTotal += Number(document.getElementById("kpi-" + id).value) || 0; });
-      let summaryHtml = '<div style="text-align:left; font-size:0.82rem; max-height:400px; overflow-y:auto;">';
-      KPI_FIELDS.forEach(function(f) {
-        const val = document.getElementById("kpi-" + f.id).value || 0;
-        summaryHtml += '<div class="d-flex justify-content-between border-bottom py-1"><span>' + f.label + '</span><span class="fw-bold text-mint-dark ms-2">' + val + '</span></div>';
-      });
-      summaryHtml += '<div class="d-flex justify-content-between py-2"><span class="fw-bold">รวม Medication Error ทั้งหมด</span><span class="fw-bold text-danger">' + medTotal + '</span></div>';
-      summaryHtml += "</div>";
-      Swal.fire({
-        title: "ยืนยันข้อมูล KPI เดือน " + document.getElementById("kpi-monthlabel").innerText,
-        html: summaryHtml,
-        icon: "question",
-        showCancelButton: true,
-        confirmButtonText: "ยืนยันส่งข้อมูล",
-        cancelButtonText: "กลับไปแก้ไข",
-        confirmButtonColor: "#047857",
-        width: 600
-      }).then(function(result) {
-        if (result.isConfirmed) submitKpiData(medTotal);
+    let riskHtml = '';
+    t.risks.forEach((val, idx) => {
+      let isDanger = val > 0;
+      let borderClass = isDanger ? 'border-danger border-2' : 'border-light';
+      let textClass = isDanger ? 'text-danger' : 'text-secondary opacity-50';
+      let pctHtml = '';
+      if (idx >= 18 && t.PatientDay > 0) {
+        let pct = (val / t.PatientDay * 100).toFixed(2);
+        pctHtml = '<div class="text-muted" style="font-size:0.62rem;">(' + pct + '%)</div>';
+      }
+      riskHtml += `<div class="col-4 col-md-3 col-lg-2"><div class="stat-card bg-white shadow-sm ${borderClass} p-2"><div class="stat-title" style="font-size:0.7rem; line-height:1;">${riskNames[idx]}</div><div class="stat-value ${textClass} fs-5 mt-1">${val}</div>${pctHtml}</div></div>`;
+    });
+    document.getElementById('dashboardRisks').innerHTML = riskHtml;
+
+    drawCharts(res.chartData, res.currentFilter.year);
+    let meetingHtml = '';
+    const meetingRecords = res.records.filter(function(r) {
+      const rn = Number(r.raw[21]) || 0, na = Number(r.raw[22]) || 0;
+      return rn > 0 || na > 0;
+    });
+    if (meetingRecords.length === 0) {
+      meetingHtml = '<tr><td colspan="4" class="text-muted py-3">ไม่มีข้อมูลการประชุม/อบรมในช่วงที่เลือก</td></tr>';
+    } else {
+      meetingRecords.forEach(function(r) {
+        const rn = Number(r.raw[21]) || 0, na = Number(r.raw[22]) || 0;
+        const totalHours = rn + na;
+        const topic = r.raw[59] || '-';
+        const person = r.raw[60] || '-';
+        meetingHtml += '<tr><td class="fw-bold">' + r.date + '</td><td class="text-start">' + topic + '</td><td class="fw-bold text-primary">' + totalHours + '</td><td class="text-start">' + person + '</td></tr>';
       });
     }
+    document.getElementById('meetingTableBody').innerHTML = meetingHtml;
 
-    function submitKpiData(medTotal) {
-      const mVal = document.getElementById("filterMonth").value;
-      const yVal = document.getElementById("filterYear").value;
-      const payload = { month: THAI_MONTHS[Number(mVal) - 1], year: yVal, medTotal: medTotal };
-      KPI_FIELDS.forEach(function(f) {
-        payload[f.id] = document.getElementById("kpi-" + f.id).value || 0;
-      });
-      Swal.fire({ title: "กำลังส่งข้อมูล...", allowOutsideClick: false, didOpen: function() { Swal.showLoading(); } });
-      callServer('saveMonthlyKPI', [payload]).then(function(res) {
-        if (res.status === "success") {
-          bootstrap.Modal.getInstance(document.getElementById("kpiModal")).hide();
-          Swal.fire({ icon: "success", title: "สำเร็จ!", text: res.message, confirmButtonColor: "#047857" });
-        } else if (res.status === "duplicate") {
-          Swal.fire({ icon: "warning", title: "มีข้อมูลอยู่แล้ว", text: res.message, confirmButtonColor: "#047857" });
-        } else {
-          Swal.fire({ icon: "error", title: "เกิดข้อผิดพลาด", text: res.message, confirmButtonColor: "#047857" });
-        }
-      }).catch(function(err) {
-        Swal.fire({ icon: "error", title: "เกิดข้อผิดพลาด", text: err.message, confirmButtonColor: "#047857" });
+    let tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    rawDataStore = {};
+    if(res.records.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-muted py-4">ไม่มีข้อมูลในระบบ</td></tr>';
+    } else {
+      res.records.forEach(r => {
+        rawDataStore[r.rowIdx] = r.raw;
+        tbody.innerHTML += `<tr>
+          <td class="fw-bold">${r.date}</td><td class="text-primary fw-bold">${r.staffDay}</td>
+          <td class="text-primary fw-bold">${r.patientDay}</td><td class="text-success fw-bold">${r.prod}%</td>
+          <td>
+            <button class="btn btn-sm btn-light text-primary shadow-sm me-1" onclick="editData(${r.rowIdx})"><i class="bi bi-pencil-fill"></i></button>
+            <button class="btn btn-sm btn-light text-danger shadow-sm" onclick="confirmDelete(${r.rowIdx})"><i class="bi bi-trash-fill"></i></button>
+          </td>
+        </tr>`;
       });
     }
+    document.getElementById('loader').style.display = 'none';
+    document.getElementById('pills-tabContent').style.display = 'block';
+  }
 
-    window.onload = () => { 
-      myModal = new bootstrap.Modal(document.getElementById('recordModal'));
-      loadData(true); 
+  function drawCharts(data, targetYear) {
+    const ty = targetYear === 'All' ? new Date().getFullYear()+543 : parseInt(targetYear);
+    if(myCharts.prod) myCharts.prod.destroy();
+    if(myCharts.totalPt) myCharts.totalPt.destroy();
+    if(myCharts.types) myCharts.types.destroy();
+
+    Chart.defaults.font.family = 'Sarabun';
+    
+    myCharts.prod = new Chart(document.getElementById('chartProd'), {
+      type: 'line',
+      data: { labels: data.labels, datasets: [
+          { label: `ปี ${ty}`, data: data.prodY0, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4, borderWidth: 3 },
+          { label: `ปี ${ty-1}`, data: data.prodY1, borderColor: '#3b82f6', borderDash: [5,5], tension: 0.4 },
+          { label: `ปี ${ty-2}`, data: data.prodY2, borderColor: '#94a3b8', borderDash: [2,2], tension: 0.4 }
+      ]}, options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    myCharts.totalPt = new Chart(document.getElementById('chartTotalPt'), {
+      type: 'bar',
+      data: { labels: data.labels, datasets: [{ label: 'ผู้รับบริการรวม', data: data.totalPt, backgroundColor: '#10b981', borderRadius: 8 }]},
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    const t = data.types;
+    myCharts.types = new Chart(document.getElementById('chartTypes'), {
+      type: 'line',
+      data: { labels: data.labels, datasets: [
+          { label: 'AHD', data: t.AHD, borderColor: '#ef4444', tension: 0.3 }, { label: 'CHD', data: t.CHD, borderColor: '#f97316', tension: 0.3 },
+          { label: 'RRT', data: t.RRT, borderColor: '#eab308', tension: 0.3 }, { label: 'OR', data: t.OR, borderColor: '#22c55e', tension: 0.3 },
+          { label: 'DLC', data: t.DLC, borderColor: '#14b8a6', tension: 0.3 }, { label: 'KBx', data: t.KBx, borderColor: '#06b6d4', tension: 0.3 },
+          { label: 'Cons', data: t.Cons, borderColor: '#3b82f6', tension: 0.3 }, { label: 'HD นอก', data: t.HDOut, borderColor: '#6366f1', borderDash:[2,2] },
+          { label: 'EID', data: t.EID, borderColor: '#8b5cf6', borderDash:[2,2] }, { label: 'ICU', data: t.ICU, borderColor: '#d946ef', borderDash:[2,2] },
+          { label: 'HIV', data: t.HIV, borderColor: '#f43f5e', borderDash:[2,2] }
+      ]}, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10 } } } }
+    });
+  }
+
+  const calcInputs = document.querySelectorAll('.calc-input');
+  calcInputs.forEach(input => input.addEventListener('input', calculateLive));
+
+  function calculateLive() {
+    const getVal = (id) => Number(document.getElementById(id).value) || 0;
+    let staffDay = getVal('f-rn') + getVal('f-pn');
+    
+    let ptDay = getVal('f-ahd') + getVal('f-chd') + getVal('f-rrt') + getVal('f-or') + getVal('f-dlc') + getVal('f-kbx') + getVal('f-cons') + getVal('f-wound');
+    let reqHours = (getVal('f-ahd')*3) + (getVal('f-chd')*3) + (getVal('f-rrt')*2) + (getVal('f-or')*3) + (getVal('f-dlc')*0.5) + (getVal('f-kbx')*0.5) + (getVal('f-cons')*0.75) + (getVal('f-wound')*0.2);
+    
+    let availHours = staffDay * 7;
+    document.getElementById('live-staff').innerText = staffDay;
+    document.getElementById('live-pt').innerText = ptDay;
+    document.getElementById('live-nhppd').innerText = ptDay > 0 ? (reqHours / ptDay).toFixed(2) : 0;
+    document.getElementById('live-prod').innerText = (availHours > 0 ? ((reqHours / availHours) * 100).toFixed(2) : 0) + '%';
+  }
+
+  function openModal() { 
+    document.getElementById('recordForm').reset(); 
+    document.getElementById('rowIdx').value = ''; 
+    const __now = new Date();
+    document.getElementById('f-date').value = __now.getFullYear() + '-' + String(__now.getMonth()+1).padStart(2,'0') + '-' + String(__now.getDate()).padStart(2,'0');
+    document.getElementById('meetInfoBox').style.display = 'none';
+    resetMeetTopicRows();
+    calculateLive(); 
+    myModal.show(); 
+  }
+
+  function editData(rowIdx) {
+    const raw = rawDataStore[rowIdx]; 
+    document.getElementById('rowIdx').value = rowIdx;
+    let d = new Date(raw[0]); 
+    document.getElementById('f-date').value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    document.getElementById('f-hn').value = raw[1]; document.getElementById('f-rn').value = raw[2]; document.getElementById('f-pn').value = raw[3]; document.getElementById('f-na').value = raw[4];
+    document.getElementById('f-ahd').value = raw[5]; document.getElementById('f-chd').value = raw[6]; document.getElementById('f-rrt').value = raw[7]; document.getElementById('f-or').value = raw[8]; document.getElementById('f-dlc').value = raw[9]; document.getElementById('f-kbx').value = raw[10]; document.getElementById('f-cons').value = raw[11]; document.getElementById('f-wound').value = raw[12];
+    document.getElementById('f-hdout').value = raw[17]; document.getElementById('f-eid').value = raw[18]; document.getElementById('f-icu').value = raw[19]; document.getElementById('f-hiv').value = raw[20];
+    document.getElementById('f-rnmeet').value = raw[21]; document.getElementById('f-nameet').value = raw[22];
+    document.getElementById('f-recorder').value = raw[61] || '';
+    parseMeetTopicStrings(raw[59] || '', raw[60] || '');
+    toggleMeetBox();
+    for(let i=0; i<36; i++) { document.getElementById('risk-'+i).value = raw[23+i] || 0; }
+    calculateLive(); 
+    myModal.show();
+  }
+
+  function saveData() {
+    if(!document.getElementById('f-date').value) return Swal.fire({ icon: 'warning', title: 'เดี๋ยวก่อน!', text: 'กรุณาเลือกวันที่ด้วยครับ' });
+    calculateLive(); 
+    let risks = []; 
+    for(let i=0; i<36; i++) { risks.push(document.getElementById('risk-'+i).value); }
+    const rnMeetVal = Number(document.getElementById('f-rnmeet').value) || 0;
+    const naMeetVal = Number(document.getElementById('f-nameet').value) || 0;
+    const __meetStrings = buildMeetTopicStrings();
+    const meetTopicVal = __meetStrings.meetTopic;
+    const meetPersonVal = __meetStrings.meetPerson;
+    if ((rnMeetVal > 0 || naMeetVal > 0) && (!meetTopicVal || !meetPersonVal)) {
+      return Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบ!', text: 'เนื่องจากมีการลงชั่วโมง RN/NA ประชุม กรุณาระบุหัวข้อการประชุม/อบรม และผู้เข้าประชุม/อบรมด้วยครับ', confirmButtonColor: '#047857' });
+    }
+    const obj = { 
+      rowIdx: document.getElementById('rowIdx').value, date: document.getElementById('f-date').value, 
+      hn: document.getElementById('f-hn').value, rn: document.getElementById('f-rn').value, pn: document.getElementById('f-pn').value, na: document.getElementById('f-na').value, 
+      ahd: document.getElementById('f-ahd').value, chd: document.getElementById('f-chd').value, rrt: document.getElementById('f-rrt').value, or: document.getElementById('f-or').value, dlc: document.getElementById('f-dlc').value, kbx: document.getElementById('f-kbx').value, cons: document.getElementById('f-cons').value, wound: document.getElementById('f-wound').value, hdout: document.getElementById('f-hdout').value, eid: document.getElementById('f-eid').value, icu: document.getElementById('f-icu').value, hiv: document.getElementById('f-hiv').value, rnMeet: document.getElementById('f-rnmeet').value, naMeet: document.getElementById('f-nameet').value, 
+      staffDay: document.getElementById('live-staff').innerText, patientDay: document.getElementById('live-pt').innerText, nhppd: document.getElementById('live-nhppd').innerText, prod: document.getElementById('live-prod').innerText.replace('%',''), risks: risks,
+      recorder: document.getElementById('f-recorder').value, meetTopic: meetTopicVal, meetPerson: meetPersonVal
     };
 
-    function loadData(isInitial = false) {
-      document.getElementById('loader').style.display = 'block';
-      document.getElementById('pills-tabContent').style.display = 'none';
-      document.getElementById('aiResultContainer').style.display = 'none'; 
-      let m = isInitial ? "" : document.getElementById('filterMonth').value;
-      let y = isInitial ? "" : document.getElementById('filterYear').value;
-      let type = document.getElementById('filterYearType').value;
-      callServer('getData', [m, y, type]).then(updateUI).catch(function (err) { document.getElementById('loader').style.display = 'none'; Swal.fire('Error', err.message, 'error'); });
+    if (Number(obj.staffDay) === 0) {
+      Swal.fire({
+        icon: 'warning', title: 'ยังไม่ได้กรอกจำนวนบุคลากร?',
+        text: 'พบว่า RN + PN รวมเป็น 0 คน ทำให้ %Productivity จะคำนวณออกมาเป็น 0% ต้องการบันทึกต่อเลยหรือไม่',
+        showCancelButton: true, confirmButtonText: 'บันทึกต่อ', cancelButtonText: 'ย้อนกลับไปแก้ไข', confirmButtonColor: '#f59e0b', cancelButtonColor: '#6b7280'
+      }).then(function(result) {
+        if (result.isConfirmed) { proceedSaveData(obj); }
+      });
+    } else {
+      proceedSaveData(obj);
     }
+  }
 
-    function updateUI(res) {
-      if (res.status === 'error') { Swal.fire('Error', res.message, 'error'); return; }
-      document.getElementById('filterMonth').value = res.currentFilter.month;
-      document.getElementById('filterYear').value = res.currentFilter.year;
-
-      const t = res.totals;
-      currentTotals = t; 
-      
-      document.getElementById('c-staffday').innerText = t.AvgStaffDay;
-      document.getElementById('c-ptday').innerText = t.AvgPatientDay;
-      document.getElementById('c-totalpt').innerText = t.PatientDay; 
-      document.getElementById('c-nhppd').innerText = t.AvgNHPPD;
-      document.getElementById('c-prod').innerText = t.AvgProd + '%';
-      
-      document.getElementById('c-hn').innerText = t.HN; document.getElementById('c-rn').innerText = t.RN;
-      document.getElementById('c-pn').innerText = t.PN; document.getElementById('c-na').innerText = t.NA;
-      document.getElementById('c-rnmeet').innerText = t.rnMeet; document.getElementById('c-nameet').innerText = t.naMeet;
-      
-      document.getElementById('c-ahd').innerText = t.AHD; document.getElementById('c-chd').innerText = t.CHD;
-      document.getElementById('c-rrt').innerText = t.RRT; document.getElementById('c-or').innerText = t.OR;
-      document.getElementById('c-dlc').innerText = t.DLC; document.getElementById('c-kbx').innerText = t.KBx;
-      document.getElementById('c-cons').innerText = t.Cons; document.getElementById('c-wound').innerText = t.wound;
-      document.getElementById('c-hdout').innerText = t.HDOut; document.getElementById('c-eid').innerText = t.EID;
-      document.getElementById('c-icu').innerText = t.ICU; document.getElementById('c-hiv').innerText = t.HIV;
-      let holidayEl = document.getElementById('holidayList');
-      let workdayBox = document.getElementById('workdayInfoBox');
-      if (res.currentFilter.month !== 'All' && res.currentFilter.year !== 'All') {
-        const yearCE = Number(res.currentFilter.year) - 543;
-        const monthIdx = Number(res.currentFilter.month) - 1;
-        const daysInMonth = new Date(yearCE, monthIdx + 1, 0).getDate();
-        const holidaysThisMonth = getHolidaysInMonth(yearCE, monthIdx);
-        const holidayDateSet = new Set(holidaysThisMonth.map(function(h) { return h.date; }));
-        let workDays = 0;
-        for (let i = 1; i <= daysInMonth; i++) {
-          const dow = new Date(yearCE, monthIdx, i).getDay();
-          const dStr = yearCE + '-' + String(monthIdx + 1).padStart(2, '0') + '-' + String(i).padStart(2, '0');
-          if (dow !== 0 && dow !== 6 && !holidayDateSet.has(dStr)) workDays++;
-        }
-        document.getElementById('workdayCount').innerText = workDays;
-        document.getElementById('workdayEntered').innerText = t.daysCount;
-        let holidayHtml = '';
-        if (holidaysThisMonth.length > 0) {
-          holidayHtml = holidaysThisMonth.map(function(h) { return '<span class="holiday-tag"><i class="bi bi-calendar-x-fill"></i> ' + h.day + ' - ' + h.name + '</span>'; }).join('');
-        }
-        holidayEl.innerHTML = holidayHtml;
-        workdayBox.style.display = 'block';
+  function proceedSaveData(obj) {
+    Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    callServer('saveRecord', [obj]).then(function(res) {
+      if (res && res.status === 'duplicate') {
+        Swal.fire({ icon: 'warning', title: 'มีข้อมูลวันที่นี้แล้ว', text: res.message, confirmButtonColor: '#047857' });
+      } else if (res && res.status === 'error') {
+        Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: res.message, confirmButtonColor: '#047857' });
       } else {
-        workdayBox.style.display = 'none';
+        myModal.hide(); 
+        Swal.fire({ icon: 'success', title: 'เย้! สำเร็จแล้ว', text: 'บันทึกข้อมูลภาระงานเรียบร้อย', confirmButtonColor: '#10b981', timer: 1500, showConfirmButton: false, timerProgressBar: true });
+        loadData(); 
       }
-
-      let riskHtml = '';
-      t.risks.forEach((val, idx) => {
-        let isDanger = val > 0;
-        let borderClass = isDanger ? 'border-danger border-2' : 'border-light';
-        let textClass = isDanger ? 'text-danger' : 'text-secondary opacity-50';
-        let pctHtml = '';
-        if (idx >= 18 && t.PatientDay > 0) {
-          let pct = (val / t.PatientDay * 100).toFixed(2);
-          pctHtml = '<div class="text-muted" style="font-size:0.62rem;">(' + pct + '%)</div>';
-        }
-        riskHtml += `<div class="col-4 col-md-3 col-lg-2"><div class="stat-card bg-white shadow-sm ${borderClass} p-2"><div class="stat-title" style="font-size:0.7rem; line-height:1;">${riskNames[idx]}</div><div class="stat-value ${textClass} fs-5 mt-1">${val}</div>${pctHtml}</div></div>`;
-      });
-      document.getElementById('dashboardRisks').innerHTML = riskHtml;TML = riskHtml;
-
-      drawCharts(res.chartData, res.currentFilter.year);
-      let meetingHtml = '';
-      const meetingRecords = res.records.filter(function(r) {
-        const rn = Number(r.raw[21]) || 0, na = Number(r.raw[22]) || 0;
-        return rn > 0 || na > 0;
-      });
-      if (meetingRecords.length === 0) {
-        meetingHtml = '<tr><td colspan="4" class="text-muted py-3">ไม่มีข้อมูลการประชุม/อบรมในช่วงที่เลือก</td></tr>';
-      } else {
-        meetingRecords.forEach(function(r) {
-          const rn = Number(r.raw[21]) || 0, na = Number(r.raw[22]) || 0;
-          const totalHours = rn + na;
-          const topic = r.raw[59] || '-';
-          const person = r.raw[60] || '-';
-          meetingHtml += '<tr><td class="fw-bold">' + r.date + '</td><td class="text-start">' + topic + '</td><td class="fw-bold text-primary">' + totalHours + '</td><td class="text-start">' + person + '</td></tr>';
-        });
-      }
-      document.getElementById('meetingTableBody').innerHTML = meetingHtml;
-
-      let tbody = document.getElementById('tableBody');
-      tbody.innerHTML = '';
-      rawDataStore = {};
-      if(res.records.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" class="text-muted py-4">ไม่มีข้อมูลในระบบ</td></tr>';
-      } else {
-        res.records.forEach(r => {
-          rawDataStore[r.rowIdx] = r.raw;
-          tbody.innerHTML += `<tr>
-            <td class="fw-bold">${r.date}</td><td class="text-primary fw-bold">${r.staffDay}</td>
-            <td class="text-primary fw-bold">${r.patientDay}</td><td class="text-success fw-bold">${r.prod}%</td>
-            <td>
-              <button class="btn btn-sm btn-light text-primary shadow-sm me-1" onclick="editData(${r.rowIdx})"><i class="bi bi-pencil-fill"></i></button>
-              <button class="btn btn-sm btn-light text-danger shadow-sm" onclick="confirmDelete(${r.rowIdx})"><i class="bi bi-trash-fill"></i></button>
-            </td>
-          </tr>`;
-        });
-      }
-      document.getElementById('loader').style.display = 'none';
-      document.getElementById('pills-tabContent').style.display = 'block';
-    }
-
-    function drawCharts(data, targetYear) {
-      const ty = targetYear === 'All' ? new Date().getFullYear()+543 : parseInt(targetYear);
-      if(myCharts.prod) myCharts.prod.destroy();
-      if(myCharts.totalPt) myCharts.totalPt.destroy();
-      if(myCharts.types) myCharts.types.destroy();
-
-      Chart.defaults.font.family = 'Sarabun';
-      
-      myCharts.prod = new Chart(document.getElementById('chartProd'), {
-        type: 'line',
-        data: { labels: data.labels, datasets: [
-            { label: `ปี ${ty}`, data: data.prodY0, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.4, borderWidth: 3 },
-            { label: `ปี ${ty-1}`, data: data.prodY1, borderColor: '#3b82f6', borderDash: [5,5], tension: 0.4 },
-            { label: `ปี ${ty-2}`, data: data.prodY2, borderColor: '#94a3b8', borderDash: [2,2], tension: 0.4 }
-        ]}, options: { responsive: true, maintainAspectRatio: false }
-      });
-
-      myCharts.totalPt = new Chart(document.getElementById('chartTotalPt'), {
-        type: 'bar',
-        data: { labels: data.labels, datasets: [{ label: 'ผู้รับบริการรวม', data: data.totalPt, backgroundColor: '#10b981', borderRadius: 8 }]},
-        options: { responsive: true, maintainAspectRatio: false }
-      });
-
-      const t = data.types;
-      myCharts.types = new Chart(document.getElementById('chartTypes'), {
-        type: 'line',
-        data: { labels: data.labels, datasets: [
-            { label: 'AHD', data: t.AHD, borderColor: '#ef4444', tension: 0.3 }, { label: 'CHD', data: t.CHD, borderColor: '#f97316', tension: 0.3 },
-            { label: 'RRT', data: t.RRT, borderColor: '#eab308', tension: 0.3 }, { label: 'OR', data: t.OR, borderColor: '#22c55e', tension: 0.3 },
-            { label: 'DLC', data: t.DLC, borderColor: '#14b8a6', tension: 0.3 }, { label: 'KBx', data: t.KBx, borderColor: '#06b6d4', tension: 0.3 },
-            { label: 'Cons', data: t.Cons, borderColor: '#3b82f6', tension: 0.3 }, { label: 'HD นอก', data: t.HDOut, borderColor: '#6366f1', borderDash:[2,2] },
-            { label: 'EID', data: t.EID, borderColor: '#8b5cf6', borderDash:[2,2] }, { label: 'ICU', data: t.ICU, borderColor: '#d946ef', borderDash:[2,2] },
-            { label: 'HIV', data: t.HIV, borderColor: '#f43f5e', borderDash:[2,2] }
-        ]}, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { boxWidth: 10 } } } }
-      });
-    }
-
-    const calcInputs = document.querySelectorAll('.calc-input');
-    calcInputs.forEach(input => input.addEventListener('input', calculateLive));
-
-    function calculateLive() {
-      const getVal = (id) => Number(document.getElementById(id).value) || 0;
-      let staffDay = getVal('f-rn') + getVal('f-pn');
-      
-      let ptDay = getVal('f-ahd') + getVal('f-chd') + getVal('f-rrt') + getVal('f-or') + getVal('f-dlc') + getVal('f-kbx') + getVal('f-cons') + getVal('f-wound');
-      let reqHours = (getVal('f-ahd')*3) + (getVal('f-chd')*3) + (getVal('f-rrt')*2) + (getVal('f-or')*3) + (getVal('f-dlc')*0.5) + (getVal('f-kbx')*0.5) + (getVal('f-cons')*0.75) + (getVal('f-wound')*0.2);
-      
-      let availHours = staffDay * 7;
-      document.getElementById('live-staff').innerText = staffDay;
-      document.getElementById('live-pt').innerText = ptDay;
-      document.getElementById('live-nhppd').innerText = ptDay > 0 ? (reqHours / ptDay).toFixed(2) : 0;
-      document.getElementById('live-prod').innerText = (availHours > 0 ? ((reqHours / availHours) * 100).toFixed(2) : 0) + '%';
-    }
-
-    function openModal() { 
-      document.getElementById('recordForm').reset(); 
-      document.getElementById('rowIdx').value = ''; 
-      const __now = new Date();
-      document.getElementById('f-date').value = __now.getFullYear() + '-' + String(__now.getMonth()+1).padStart(2,'0') + '-' + String(__now.getDate()).padStart(2,'0');
-      document.getElementById('meetInfoBox').style.display = 'none';
-      resetMeetTopicRows();
-      calculateLive(); 
-      myModal.show(); 
-    }
-
-    function editData(rowIdx) {
-      const raw = rawDataStore[rowIdx]; 
-      document.getElementById('rowIdx').value = rowIdx;
-      let d = new Date(raw[0]); 
-      document.getElementById('f-date').value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-      document.getElementById('f-hn').value = raw[1]; document.getElementById('f-rn').value = raw[2]; document.getElementById('f-pn').value = raw[3]; document.getElementById('f-na').value = raw[4];
-      document.getElementById('f-ahd').value = raw[5]; document.getElementById('f-chd').value = raw[6]; document.getElementById('f-rrt').value = raw[7]; document.getElementById('f-or').value = raw[8]; document.getElementById('f-dlc').value = raw[9]; document.getElementById('f-kbx').value = raw[10]; document.getElementById('f-cons').value = raw[11]; document.getElementById('f-wound').value = raw[12];
-      document.getElementById('f-hdout').value = raw[17]; document.getElementById('f-eid').value = raw[18]; document.getElementById('f-icu').value = raw[19]; document.getElementById('f-hiv').value = raw[20];
-      document.getElementById('f-rnmeet').value = raw[21]; document.getElementById('f-nameet').value = raw[22];
-      document.getElementById('f-recorder').value = raw[61] || '';
-      parseMeetTopicStrings(raw[59] || '', raw[60] || '');
-      toggleMeetBox();
-      for(let i=0; i<36; i++) { document.getElementById('risk-'+i).value = raw[23+i] || 0; }
-      calculateLive(); 
-      myModal.show();
-    }
-
-    function saveData() {
-      if(!document.getElementById('f-date').value) return Swal.fire({ icon: 'warning', title: 'เดี๋ยวก่อน!', text: 'กรุณาเลือกวันที่ด้วยครับ' });
-      calculateLive(); 
-      let risks = []; 
-      for(let i=0; i<36; i++) { risks.push(document.getElementById('risk-'+i).value); }
-      const rnMeetVal = Number(document.getElementById('f-rnmeet').value) || 0;
-      const naMeetVal = Number(document.getElementById('f-nameet').value) || 0;
-      const __meetStrings = buildMeetTopicStrings();
-      const meetTopicVal = __meetStrings.meetTopic;
-      const meetPersonVal = __meetStrings.meetPerson;
-      if ((rnMeetVal > 0 || naMeetVal > 0) && (!meetTopicVal || !meetPersonVal)) {
-        return Swal.fire({ icon: 'warning', title: 'ข้อมูลไม่ครบ!', text: 'เนื่องจากมีการลงชั่วโมง RN/NA ประชุม กรุณาระบุหัวข้อการประชุม/อบรม และผู้เข้าประชุม/อบรมด้วยครับ', confirmButtonColor: '#047857' });
-      }
-      const obj = { 
-        rowIdx: document.getElementById('rowIdx').value, date: document.getElementById('f-date').value, 
-        hn: document.getElementById('f-hn').value, rn: document.getElementById('f-rn').value, pn: document.getElementById('f-pn').value, na: document.getElementById('f-na').value, 
-        ahd: document.getElementById('f-ahd').value, chd: document.getElementById('f-chd').value, rrt: document.getElementById('f-rrt').value, or: document.getElementById('f-or').value, dlc: document.getElementById('f-dlc').value, kbx: document.getElementById('f-kbx').value, cons: document.getElementById('f-cons').value, wound: document.getElementById('f-wound').value, hdout: document.getElementById('f-hdout').value, eid: document.getElementById('f-eid').value, icu: document.getElementById('f-icu').value, hiv: document.getElementById('f-hiv').value, rnMeet: document.getElementById('f-rnmeet').value, naMeet: document.getElementById('f-nameet').value, 
-        staffDay: document.getElementById('live-staff').innerText, patientDay: document.getElementById('live-pt').innerText, nhppd: document.getElementById('live-nhppd').innerText, prod: document.getElementById('live-prod').innerText.replace('%',''), risks: risks,
-        recorder: document.getElementById('f-recorder').value, meetTopic: meetTopicVal, meetPerson: meetPersonVal
-      };
-
-      if (Number(obj.staffDay) === 0) {
-        Swal.fire({
-          icon: 'warning', title: 'ยังไม่ได้กรอกจำนวนบุคลากร?',
-          text: 'พบว่า RN + PN รวมเป็น 0 คน ทำให้ %Productivity จะคำนวณออกมาเป็น 0% ต้องการบันทึกต่อเลยหรือไม่',
-          showCancelButton: true, confirmButtonText: 'บันทึกต่อ', cancelButtonText: 'ย้อนกลับไปแก้ไข', confirmButtonColor: '#f59e0b', cancelButtonColor: '#6b7280'
-        }).then(function(result) {
-          if (result.isConfirmed) { proceedSaveData(obj); }
-        });
-      } else {
-        proceedSaveData(obj);
-      }
-    }
-
-    function proceedSaveData(obj) {
-      Swal.fire({ title: 'กำลังบันทึกข้อมูล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      callServer('saveRecord', [obj]).then(function(res) {
-        if (res && res.status === 'duplicate') {
-          Swal.fire({ icon: 'warning', title: 'มีข้อมูลวันที่นี้แล้ว', text: res.message, confirmButtonColor: '#047857' });
-        } else if (res && res.status === 'error') {
-          Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: res.message, confirmButtonColor: '#047857' });
-        } else {
-          myModal.hide(); 
-          Swal.fire({ icon: 'success', title: 'เย้! สำเร็จแล้ว', text: 'บันทึกข้อมูลภาระงานเรียบร้อย', confirmButtonColor: '#10b981', timer: 1500, showConfirmButton: false, timerProgressBar: true });
+    }).catch(function (err) { Swal.fire('Error', err.message, 'error'); });
+  }
+  
+  function confirmDelete(rowIdx) { 
+    Swal.fire({ title: 'แน่ใจหรือไม่?', text: "ข้อมูลนี้จะถูกลบอย่างถาวร!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'ลบเลย!' }).then((res) => { 
+      if (res.isConfirmed) { 
+        Swal.fire({ title: 'กำลังลบ...', didOpen: () => Swal.showLoading() }); 
+        callServer('deleteRecord', [rowIdx]).then(() => {
+          Swal.fire({ icon: 'success', title: 'ลบเรียบร้อย', confirmButtonColor: '#10b981' }); 
           loadData(); 
-        }
-      }).catch(function (err) { Swal.fire('Error', err.message, 'error'); });
-    }
+        }).catch(function (err) { Swal.fire('Error', err.message, 'error'); });
+      } 
+    }); 
+  }
+
+  function runAIAnalysis() {
+    let period = `เดือน ${document.getElementById('filterMonth').options[document.getElementById('filterMonth').selectedIndex].text} ปี ${document.getElementById('filterYear').value}`;
+    let riskStr = "";
+    currentTotals.risks.forEach((val, idx) => { if(val > 0) riskStr += `- ${riskNames[idx]}: ${val} ครั้ง\n`; });
+    if(riskStr === "") riskStr = "- ไม่มีอุบัติการณ์ความเสี่ยง\n";
+
+    let summary = `
+    ช่วงเวลาที่ประเมิน: ${period}
+    1. ข้อมูลภาพรวม:
+    - % Productivity เฉลี่ย: ${currentTotals.AvgProd}%
+    - อัตรากำลังเฉลี่ย (Staff/Day): ${currentTotals.AvgStaffDay} คน/วัน
+    - ผู้ป่วยเฉลี่ย (Patient/Day): ${currentTotals.AvgPatientDay} ราย/วัน
+    - ยอดผู้ป่วยสะสม: ${currentTotals.PatientDay} ราย
     
-    function confirmDelete(rowIdx) { 
-      Swal.fire({ title: 'แน่ใจหรือไม่?', text: "ข้อมูลนี้จะถูกลบอย่างถาวร!", icon: 'warning', showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'ลบเลย!' }).then((res) => { 
-        if (res.isConfirmed) { 
-          Swal.fire({ title: 'กำลังลบ...', didOpen: () => Swal.showLoading() }); 
-          callServer('deleteRecord', [rowIdx]).then(() => {
-            Swal.fire({ icon: 'success', title: 'ลบเรียบร้อย', confirmButtonColor: '#10b981' }); 
-            loadData(); 
-          }).catch(function (err) { Swal.fire('Error', err.message, 'error'); });
-        } 
-      }); 
-    }
+    2. ข้อมูลบุคลากรและการพัฒนา:
+    - พยาบาลวิชาชีพ (RN) รวม: ${currentTotals.RN}
+    - ผู้ช่วยพยาบาล (PN) รวม: ${currentTotals.PN}
+    - จำนวนชั่วโมง RN อบรม/ประชุม: ${currentTotals.rnMeet} ชม.
+    - จำนวนชั่วโมง NA อบรม/ประชุม: ${currentTotals.naMeet} ชม.
 
-    function runAIAnalysis() {
-      let period = `เดือน ${document.getElementById('filterMonth').options[document.getElementById('filterMonth').selectedIndex].text} ปี ${document.getElementById('filterYear').value}`;
-      let riskStr = "";
-      currentTotals.risks.forEach((val, idx) => { if(val > 0) riskStr += `- ${riskNames[idx]}: ${val} ครั้ง\n`; });
-      if(riskStr === "") riskStr = "- ไม่มีอุบัติการณ์ความเสี่ยง\n";
+    3. อุบัติการณ์ความเสี่ยงที่เกิดขึ้น (Incident Report):
+    ${riskStr}
+    `;
 
-      let summary = `
-      ช่วงเวลาที่ประเมิน: ${period}
-      1. ข้อมูลภาพรวม:
-      - % Productivity เฉลี่ย: ${currentTotals.AvgProd}%
-      - อัตรากำลังเฉลี่ย (Staff/Day): ${currentTotals.AvgStaffDay} คน/วัน
-      - ผู้ป่วยเฉลี่ย (Patient/Day): ${currentTotals.AvgPatientDay} ราย/วัน
-      - ยอดผู้ป่วยสะสม: ${currentTotals.PatientDay} ราย
-      
-      2. ข้อมูลบุคลากรและการพัฒนา:
-      - พยาบาลวิชาชีพ (RN) รวม: ${currentTotals.RN}
-      - ผู้ช่วยพยาบาล (PN) รวม: ${currentTotals.PN}
-      - จำนวนชั่วโมง RN อบรม/ประชุม: ${currentTotals.rnMeet} ชม.
-      - จำนวนชั่วโมง NA อบรม/ประชุม: ${currentTotals.naMeet} ชม.
-
-      3. อุบัติการณ์ความเสี่ยงที่เกิดขึ้น (Incident Report):
-      ${riskStr}
-      `;
-
-      Swal.fire({ title: 'AI กำลังประเมินผล...', html: 'กำลังวิเคราะห์ภาพรวมองค์กร...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      
-      callServer('analyzeWithGemini', [summary]).then(res => {
-        Swal.close();
-        document.getElementById('aiResultContainer').style.display = 'block';
-        let formattedText = res.replace(/\*\*(.*?)\*\*/g, '<strong class="text-mint-dark">$1</strong>').replace(/\n/g, '<br>');
-        document.getElementById('aiResultText').innerHTML = formattedText;
-        document.getElementById('aiResultContainer').scrollIntoView({ behavior: 'smooth' });
-      }).catch(function (err) { Swal.close(); Swal.fire('Error', err.message, 'error'); });
-    }
+    Swal.fire({ title: 'AI กำลังประเมินผล...', html: 'กำลังวิเคราะห์ภาพรวมองค์กร...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    
+    callServer('analyzeWithGemini', [summary]).then(res => {
+      Swal.close();
+      document.getElementById('aiResultContainer').style.display = 'block';
+      let formattedText = res.replace(/\*\*(.*?)\*\*/g, '<strong class="text-mint-dark">$1</strong>').replace(/\n/g, '<br>');
+      document.getElementById('aiResultText').innerHTML = formattedText;
+      document.getElementById('aiResultContainer').scrollIntoView({ behavior: 'smooth' });
+    }).catch(function (err) { Swal.close(); Swal.fire('Error', err.message, 'error'); });
+  }
   </script>
 </body>
 </html>
