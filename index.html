@@ -489,7 +489,7 @@
 
   const THAI_MONTHS = ["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
   const KPI_FIELDS = [
-    {id:"fall", label:"AU=Fall"},
+    {id:"fall", label:"Fall"},
     {id:"medA", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ A"},
     {id:"medB", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ B"},
     {id:"medC", label:"ความคลาดเคลื่อนทางยา (Medication error) ระดับ C"},
@@ -583,7 +583,7 @@
     const payload = {
       month: THAI_MONTHS[Number(mVal) - 1],
       year: yVal,
-      // ดึงอัตโนมัติจากแดชบอร์ด (คอลัมน์ C - AT)
+      // ดึงอัตโนมัติจากแดชบอร์ดและความเสี่ยง 36 ข้อ
       prod: currentTotals.AvgProd || 0,
       visit: currentTotals.PatientDay || 0,
       aki: currentTotals.AHD || 0,
